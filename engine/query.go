@@ -32,11 +32,18 @@ type ReportsDatabase struct {
 	ctx context.Context
 }
 
-func (rdb *ReportsDatabase) InsertReport(report general.Report) error {
-	sql1 := "INSERT INTO reports (app, instance, level, subject, body) VALUES (?,?,?,?,?)"
+func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
+	sql1 := "INSERT INTO reports (app, instance, level, subject, body, created) VALUES (?,?,?,?,?,?)"
 	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
-	_, err := rdb.db.Exec(sql1, report.App, report.Instance, report.Level, report.Subject, report.Body)
-	return err
+	result, err := rdb.db.Exec(sql1, report.App, report.Instance, report.Level, report.Subject, report.Body, report.Created)
+	if err != nil {
+		return -1, err
+	}
+	reportID, err := result.LastInsertId()
+	if err != nil {
+		return -1, err
+	}
+	return int(reportID), nil
 }
 
 func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {

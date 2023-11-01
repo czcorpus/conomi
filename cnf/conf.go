@@ -46,6 +46,7 @@ type Conf struct {
 	TimeZone               string                `json:"timeZone"`
 	DB                     *engine.DBConf        `json:"db"`
 	Notifiers              []common.NotifierConf `json:"notifiers"`
+	PublicPath             string                `json:"publicPath"`
 
 	srcPath string
 }

@@ -20,7 +20,14 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
+
+	"github.com/czcorpus/conomi/general"
 )
+
+type TemplateData struct {
+	Info   general.GeneralInfo
+	Report general.Report
+}
 
 func GetTemplate(name string) (*template.Template, error) {
 	templateFunc := template.FuncMap{

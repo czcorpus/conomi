@@ -20,6 +20,7 @@ import (
 	"database/sql"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/czcorpus/cnc-gokit/uniresp"
 	"github.com/czcorpus/conomi/engine"
@@ -34,18 +35,20 @@ type Actions struct {
 }
 
 func (a *Actions) PostReport(ctx *gin.Context) {
-	var report general.Report
+	report := general.Report{ResolvedByUserID: -1, Created: time.Now()}
 	if err := ctx.ShouldBindJSON(&report); err != nil {
 		uniresp.WriteJSONErrorResponse(
 			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusBadRequest)
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
-	if err := rdb.InsertReport(report); err != nil {
+	reportID, err := rdb.InsertReport(report)
+	if err != nil {
 		uniresp.WriteJSONErrorResponse(
 			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusInternalServerError)
 		return
 	}
+	report.ID = reportID
 	for _, notifier := range a.n {
 		if notifier.ShouldBeSent(report) {
 			if err := notifier.SendNotification(report); err != nil {
@@ -55,7 +58,7 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 			}
 		}
 	}
-	uniresp.WriteJSONResponse(ctx.Writer, map[string]bool{"ok": true})
+	uniresp.WriteJSONResponse(ctx.Writer, report)
 }
 
 func (a *Actions) GetReports(ctx *gin.Context) {

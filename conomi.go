@@ -50,7 +50,7 @@ func init() {
 }
 
 func runApiServer(
-	version general.VersionInfo,
+	info general.GeneralInfo,
 	conf *cnf.Conf,
 	syscallChan chan os.Signal,
 	exitEvent chan os.Signal,
@@ -67,14 +67,14 @@ func runApiServer(
 	engine.NoMethod(uniresp.NoMethodHandler)
 	engine.NoRoute(uniresp.NotFoundHandler)
 
-	n, err := notifiers.NotifiersFactory(version, conf.Notifiers, conf.TimezoneLocation())
+	n, err := notifiers.NotifiersFactory(info, conf.Notifiers, conf.TimezoneLocation())
 	if err != nil {
 		return err
 	}
 	r := reporting.NewActions(sqlDB, n)
 	engine.POST("/report", r.PostReport)
 	engine.GET("/report/:reportId", r.GetReport)
-	engine.POST("/resolve/:reportId", r.ResolveReport)
+	engine.GET("/resolve/:reportId", r.ResolveReport)
 	engine.GET("/reports", r.GetReports)
 
 	log.Info().Msgf("starting to listen at %s:%d", conf.ListenAddress, conf.ListenPort)
@@ -105,7 +105,7 @@ func runApiServer(
 }
 
 func main() {
-	version := general.VersionInfo{
+	build := general.Build{
 		Version:   version,
 		BuildDate: buildDate,
 		GitCommit: gitCommit,
@@ -120,10 +120,14 @@ func main() {
 	flag.Parse()
 	action := flag.Arg(0)
 	if action == "version" {
-		fmt.Printf("todo %s\nbuild date: %s\nlast commit: %s\n", version.Version, version.BuildDate, version.GitCommit)
+		fmt.Printf("todo %s\nbuild date: %s\nlast commit: %s\n", build.Version, build.BuildDate, build.GitCommit)
 		return
 	}
 	conf := cnf.LoadConfig(flag.Arg(1))
+	info := general.GeneralInfo{
+		Build:      build,
+		PublicPath: conf.PublicPath,
+	}
 
 	if action == "test" {
 		cnf.ValidateAndDefaults(conf)
@@ -154,7 +158,7 @@ func main() {
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to open database connection")
 		}
-		err = runApiServer(version, conf, syscallChan, exitEvent, sqlDB)
+		err = runApiServer(info, conf, syscallChan, exitEvent, sqlDB)
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to run api server")
 		}

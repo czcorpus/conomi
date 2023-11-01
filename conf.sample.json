@@ -30,7 +30,7 @@
             "type": "zulip",
             "name": "ZulipNotifier1",
             "args": {
-                "server": "https://zulip.korpus.cz",
+                "server": "https://zulip.server.com",
                 "sender": "someone@somewhere.cz",
                 "token": "abcdef",
                 "type": "direct",
@@ -41,5 +41,6 @@
                 "apps": ["kontext"]
             }
         }
-    ]
+    ],
+    "publicPath": "http://somepath.com"
 }

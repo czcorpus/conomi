@@ -40,11 +40,11 @@ type ZulipNotifierArgs struct {
 }
 
 type zulipNotifier struct {
-	version general.VersionInfo
-	args    *ZulipNotifierArgs
-	filter  common.FilterConf
-	loc     *time.Location
-	tmpl    *template.Template
+	info   general.GeneralInfo
+	args   *ZulipNotifierArgs
+	filter common.FilterConf
+	loc    *time.Location
+	tmpl   *template.Template
 }
 
 func (zn *zulipNotifier) ShouldBeSent(report general.Report) bool {
@@ -59,7 +59,7 @@ func (zn *zulipNotifier) SendNotification(report general.Report) error {
 	}
 
 	var message strings.Builder
-	if err := zn.tmpl.Execute(&message, report); err != nil {
+	if err := zn.tmpl.Execute(&message, templates.TemplateData{Report: report, Info: zn.info}); err != nil {
 		return err
 	}
 	params.Add("content", message.String())
@@ -75,7 +75,7 @@ func (zn *zulipNotifier) SendNotification(report general.Report) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", fmt.Sprintf("CNKNotifier/%s-%s", zn.version.Version, zn.version.GitCommit))
+	req.Header.Set("User-Agent", fmt.Sprintf("CNKNotifier/%s-%s", zn.info.Build.Version, zn.info.Build.GitCommit))
 	req.SetBasicAuth(zn.args.Sender, zn.args.Token)
 
 	client := &http.Client{}
@@ -95,22 +95,22 @@ func (zn *zulipNotifier) SendNotification(report general.Report) error {
 }
 
 func NewZulipNotifier(
-	version general.VersionInfo,
+	info general.GeneralInfo,
 	args *ZulipNotifierArgs,
 	filter common.FilterConf,
 	loc *time.Location,
 ) (common.Notifier, error) {
-	log.Info().Msgf("creating zulip notifier of type `%s` with recipient(s) %s", args.Type, strings.Join(args.Recipients, ", "))
-	tmpl, err := templates.GetTemplate("zulip.tmpl")
+	tmpl, err := templates.GetTemplate("zulip.gtpl")
 	if err != nil {
 		return nil, err
 	}
+	log.Info().Msgf("creating zulip notifier of type `%s` with recipient(s) %s", args.Type, strings.Join(args.Recipients, ", "))
 	notifier := &zulipNotifier{
-		version: version,
-		args:    args,
-		filter:  filter,
-		loc:     loc,
-		tmpl:    tmpl,
+		info:   info,
+		args:   args,
+		filter: filter,
+		loc:    loc,
+		tmpl:   tmpl,
 	}
 	return notifier, nil
 }

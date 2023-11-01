@@ -16,9 +16,15 @@
 
 package general
 
-// VersionInfo provides a detailed information about the actual build
-type VersionInfo struct {
+// Build provides a detailed information about the actual build
+type Build struct {
 	Version   string `json:"version"`
 	BuildDate string `json:"buildDate"`
 	GitCommit string `json:"gitCommit"`
+}
+
+// GeneralInfo provides a information about the running instance
+type GeneralInfo struct {
+	Build      Build
+	PublicPath string
 }

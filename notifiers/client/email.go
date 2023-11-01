@@ -20,19 +20,22 @@ import (
 	"fmt"
 	goMail "net/mail"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/czcorpus/cnc-gokit/mail"
 	"github.com/czcorpus/conomi/general"
 	"github.com/czcorpus/conomi/notifiers/common"
+	"github.com/czcorpus/conomi/templates"
 	"github.com/rs/zerolog/log"
 )
 
 type emailNotifier struct {
-	version general.VersionInfo
-	args    *mail.NotificationConf
-	filter  common.FilterConf
-	loc     *time.Location
+	info   general.GeneralInfo
+	args   *mail.NotificationConf
+	filter common.FilterConf
+	loc    *time.Location
+	tmpl   *template.Template
 }
 
 func (en *emailNotifier) ShouldBeSent(report general.Report) bool {
@@ -40,14 +43,22 @@ func (en *emailNotifier) ShouldBeSent(report general.Report) bool {
 }
 
 func (en *emailNotifier) SendNotification(report general.Report) error {
-	return mail.SendNotification(en.args, en.loc, mail.Notification{
-		Subject:    fmt.Sprintf("%s: %s (%s/%s)", strings.ToUpper(report.Level), report.Subject, report.App, report.Instance),
-		Paragraphs: []string{report.Body},
-	})
+	var message strings.Builder
+	if err := en.tmpl.Execute(&message, templates.TemplateData{Report: report, Info: en.info}); err != nil {
+		return err
+	}
+	return mail.SendNotification(
+		en.args,
+		en.loc,
+		mail.FormattedNotification{
+			Subject: fmt.Sprintf("%s: %s (%s/%s)", strings.ToUpper(report.Level), report.Subject, report.App, report.Instance),
+			Divs:    []string{message.String()},
+		},
+	)
 }
 
 func NewEmailNotifier(
-	version general.VersionInfo,
+	info general.GeneralInfo,
 	args *mail.NotificationConf,
 	filter common.FilterConf,
 	loc *time.Location,
@@ -61,12 +72,17 @@ func NewEmailNotifier(
 			return nil, fmt.Errorf("incorrect e-mail address %s: %s", addr, err)
 		}
 	}
+	tmpl, err := templates.GetTemplate("email.gtpl")
+	if err != nil {
+		return nil, err
+	}
 	log.Info().Msgf("creating e-mail notifier with recipient(s) %s", strings.Join(args.Recipients, ", "))
 	notifier := &emailNotifier{
-		version: version,
-		args:    args,
-		filter:  filter,
-		loc:     loc,
+		info:   info,
+		args:   args,
+		filter: filter,
+		loc:    loc,
+		tmpl:   tmpl,
 	}
 	return notifier, nil
 }

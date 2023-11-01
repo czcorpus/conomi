@@ -28,7 +28,7 @@ import (
 )
 
 func NotifiersFactory(
-	version general.VersionInfo,
+	version general.GeneralInfo,
 	notifiersConf []common.NotifierConf,
 	loc *time.Location,
 ) ([]common.Notifier, error) {
