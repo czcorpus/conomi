@@ -22,10 +22,12 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/czcorpus/conomi/general"
 	"github.com/czcorpus/conomi/notifiers/common"
+	"github.com/czcorpus/conomi/templates"
 	"github.com/rs/zerolog/log"
 )
 
@@ -42,27 +44,25 @@ type zulipNotifier struct {
 	args    *ZulipNotifierArgs
 	filter  common.FilterConf
 	loc     *time.Location
+	tmpl    *template.Template
 }
 
-func (zn *zulipNotifier) ShouldBeSent(message general.Report) bool {
-	return zn.filter.IsFiltered(message)
+func (zn *zulipNotifier) ShouldBeSent(report general.Report) bool {
+	return zn.filter.IsFiltered(report)
 }
 
-func (zn *zulipNotifier) SendNotification(message general.Report) error {
+func (zn *zulipNotifier) SendNotification(report general.Report) error {
 	params := url.Values{}
 	params.Set("type", zn.args.Type)
 	for _, recipient := range zn.args.Recipients {
 		params.Add("to", recipient)
 	}
-	completeMessage := strings.Join(
-		[]string{
-			fmt.Sprintf("***%s*: %s** (%s/%s)", strings.ToUpper(message.Level), message.Subject, message.App, message.Instance),
-			"",
-			message.Body,
-		},
-		"\n",
-	)
-	params.Add("content", completeMessage)
+
+	var message strings.Builder
+	if err := zn.tmpl.Execute(&message, report); err != nil {
+		return err
+	}
+	params.Add("content", message.String())
 
 	zURL, err := url.Parse(zn.args.Server)
 	if err != nil {
@@ -101,11 +101,16 @@ func NewZulipNotifier(
 	loc *time.Location,
 ) (common.Notifier, error) {
 	log.Info().Msgf("creating zulip notifier of type `%s` with recipient(s) %s", args.Type, strings.Join(args.Recipients, ", "))
+	tmpl, err := templates.GetTemplate("zulip.tmpl")
+	if err != nil {
+		return nil, err
+	}
 	notifier := &zulipNotifier{
 		version: version,
 		args:    args,
 		filter:  filter,
 		loc:     loc,
+		tmpl:    tmpl,
 	}
 	return notifier, nil
 }

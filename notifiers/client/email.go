@@ -35,14 +35,14 @@ type emailNotifier struct {
 	loc     *time.Location
 }
 
-func (en *emailNotifier) ShouldBeSent(message general.Report) bool {
-	return en.filter.IsFiltered(message)
+func (en *emailNotifier) ShouldBeSent(report general.Report) bool {
+	return en.filter.IsFiltered(report)
 }
 
-func (en *emailNotifier) SendNotification(message general.Report) error {
+func (en *emailNotifier) SendNotification(report general.Report) error {
 	return mail.SendNotification(en.args, en.loc, mail.Notification{
-		Subject:    fmt.Sprintf("%s: %s (%s/%s)", strings.ToUpper(message.Level), message.Subject, message.App, message.Instance),
-		Paragraphs: []string{message.Body},
+		Subject:    fmt.Sprintf("%s: %s (%s/%s)", strings.ToUpper(report.Level), report.Subject, report.App, report.Instance),
+		Paragraphs: []string{report.Body},
 	})
 }
 

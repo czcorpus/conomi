@@ -14,11 +14,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package common
+package templates
 
-import "github.com/czcorpus/conomi/general"
+import (
+	"fmt"
+	"strings"
+	"text/template"
+)
 
-type Notifier interface {
-	ShouldBeSent(report general.Report) bool
-	SendNotification(report general.Report) error
+func GetTemplate(name string) (*template.Template, error) {
+	templateFunc := template.FuncMap{
+		"upper": strings.ToUpper,
+		"lower": strings.ToLower,
+	}
+	return template.New(name).Funcs(templateFunc).ParseFiles(fmt.Sprintf("templates/%s", name))
 }
