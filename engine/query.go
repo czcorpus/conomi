@@ -39,19 +39,23 @@ func (rdb *ReportsDatabase) InsertReport(report general.Report) error {
 	return err
 }
 
-func (rdb *ReportsDatabase) SelectReports() ([]*general.Report, error) {
-	sql1 := "SELECT id, app, instance, level, subject, body, created, resolved FROM reports WHERE resolved = FALSE"
-	log.Debug().Str("sql", sql1).Msg("going to SELECT reports WHERE resolved = FALSE")
+func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
+	sql1 := "SELECT id, app, instance, level, subject, body, created, resolved_by_user_id FROM reports WHERE resolved_by_user_id IS NULL"
+	log.Debug().Str("sql", sql1).Msg("going to SELECT reports WHERE resolved_by_user_id IS NULL")
 	rows, err := rdb.db.Query(sql1)
 	if err != nil {
 		return []*general.Report{}, err
 	}
 	ans := make([]*general.Report, 0, 100)
 	for rows.Next() {
-		item := &general.Report{}
-		err := rows.Scan(&item.ID, &item.App, &item.Instance, &item.Level, &item.Subject, &item.Body, &item.Created, &item.Resolved)
+		item := &general.Report{ResolvedByUserID: -1}
+		var resolvedByUserID sql.NullInt32
+		err := rows.Scan(&item.ID, &item.App, &item.Instance, &item.Level, &item.Subject, &item.Body, &item.Created, &resolvedByUserID)
 		if err != nil {
 			return ans, err
+		}
+		if resolvedByUserID.Valid {
+			item.ResolvedByUserID = int(resolvedByUserID.Int32)
 		}
 		ans = append(ans, item)
 	}
@@ -59,21 +63,25 @@ func (rdb *ReportsDatabase) SelectReports() ([]*general.Report, error) {
 }
 
 func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) {
-	sql1 := "SELECT id, app, instance, level, subject, body, created, resolved FROM reports WHERE id = ? LIMIT 1"
+	sql1 := "SELECT id, app, instance, level, subject, body, created, resolved_by_user_id FROM reports WHERE id = ? LIMIT 1"
 	log.Debug().Str("sql", sql1).Msgf("going to SELECT report WHERE id = %d", reportID)
 	row := rdb.db.QueryRow(sql1, reportID)
-	item := &general.Report{}
-	err := row.Scan(&item.ID, &item.App, &item.Instance, &item.Level, &item.Subject, &item.Body, &item.Created, &item.Resolved)
+	item := &general.Report{ResolvedByUserID: -1}
+	var resolvedByUserID sql.NullInt32
+	err := row.Scan(&item.ID, &item.App, &item.Instance, &item.Level, &item.Subject, &item.Body, &item.Created, &resolvedByUserID)
 	if err != nil {
 		return nil, err
+	}
+	if resolvedByUserID.Valid {
+		item.ResolvedByUserID = int(resolvedByUserID.Int32)
 	}
 	return item, nil
 }
 
-func (rdb *ReportsDatabase) ResolveReport(reportID int) error {
-	sql1 := "UPDATE reports SET resolved = TRUE WHERE id = ?"
+func (rdb *ReportsDatabase) ResolveReport(reportID int, userID int) error {
+	sql1 := "UPDATE reports SET resolved_by_user_id = ? WHERE id = ? AND resolved_by_user_id IS NULL"
 	log.Debug().Str("sql", sql1).Msgf("going to resolve report WHERE id = %d", reportID)
-	_, err := rdb.db.Exec(sql1, reportID)
+	_, err := rdb.db.Exec(sql1, userID, reportID)
 	return err
 }
 

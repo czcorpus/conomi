@@ -60,7 +60,7 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 
 func (a *Actions) GetReports(ctx *gin.Context) {
 	rdb := engine.NewReportsDatabase(a.db)
-	reports, err := rdb.SelectReports()
+	reports, err := rdb.ListReports()
 	if err != nil {
 		uniresp.WriteJSONErrorResponse(
 			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusInternalServerError)
@@ -74,11 +74,18 @@ func (a *Actions) ResolveReport(ctx *gin.Context) {
 	reportID, err := strconv.Atoi(reportIDString)
 	if err != nil {
 		uniresp.WriteJSONErrorResponse(
-			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusInternalServerError)
+			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusBadRequest)
+		return
+	}
+	userIDString := ctx.Request.URL.Query().Get("user_id")
+	userID, err := strconv.Atoi(userIDString)
+	if err != nil {
+		uniresp.WriteJSONErrorResponse(
+			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusBadRequest)
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
-	if err := rdb.ResolveReport(reportID); err != nil {
+	if err := rdb.ResolveReport(reportID, userID); err != nil {
 		uniresp.WriteJSONErrorResponse(
 			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusInternalServerError)
 		return

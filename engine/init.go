@@ -30,7 +30,7 @@ func initDatabase(db *sql.DB) error {
 		subject text NOT NULL,
 		body text NOT NULL,
 		created datetime DEFAULT NOW() NOT NULL,
-		resolved tinyint DEFAULT FALSE NOT NULL,
+		resolved_by_user_id int DEFAULT NULL,
 		PRIMARY KEY (id)
 	  )`)
 
