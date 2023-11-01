@@ -1,0 +1,45 @@
+{
+    "listenAddress" : "127.0.0.1",
+    "listenPort": 8080,
+    "logFile": "",
+    "logLevel": "debug",
+    "serverReadTimeoutSecs": 120,
+    "serverWriteTimeoutSecs": 60,
+    "db": {
+        "host": "dbserver",
+        "name": "dbname",
+        "user": "dbuser",
+        "password": "*******",
+        "port": 5432,
+        "poolSize": 5
+    },
+    "notifiers": [
+        {
+            "type": "email",
+            "name": "EmailNotifier1",
+            "args": {
+                "sender": "someone@somewhere.cz",
+                "recipients": ["someone@somewhere.cz"],
+                "smtpServer": "smtp.server.cz:25",
+                "smtpUsername": "username",
+                "smtpPassword": "password",
+                "signature": {}
+            }
+        },
+        {
+            "type": "zulip",
+            "name": "ZulipNotifier1",
+            "args": {
+                "server": "https://zulip.korpus.cz",
+                "sender": "someone@somewhere.cz",
+                "token": "abcdef",
+                "type": "direct",
+                "recipients": ["someone@somewhere.cz"]
+            },
+            "filter": {
+                "levels": ["critical"],
+                "apps": ["kontext"]
+            }
+        }
+    ]
+}
