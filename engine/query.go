@@ -34,7 +34,7 @@ type ReportsDatabase struct {
 }
 
 func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
-	sql1 := "INSERT INTO reports (app, instance, level, subject, body, args, created) VALUES (?,?,?,?,?,?,?)"
+	sql1 := "INSERT INTO conomi_reports (app, instance, level, subject, body, args, created) VALUES (?,?,?,?,?,?,?)"
 	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
 	instance := sql.NullString{
 		String: report.Instance,
@@ -61,8 +61,10 @@ func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 }
 
 func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
-	sql1 := "SELECT id, app, instance, level, subject, body, args, created, resolved_by_user_id FROM reports WHERE resolved_by_user_id IS NULL"
-	log.Debug().Str("sql", sql1).Msg("going to SELECT reports WHERE resolved_by_user_id IS NULL")
+	sql1 := "SELECT id, app, instance, level, subject, body, args, created, resolved_by_user_id " +
+		"FROM conomi_reports " +
+		"WHERE resolved_by_user_id IS NULL"
+	log.Debug().Str("sql", sql1).Msg("going to SELECT conomi_reports WHERE resolved_by_user_id IS NULL")
 	rows, err := rdb.db.Query(sql1)
 	if err != nil {
 		return []*general.Report{}, err
@@ -92,8 +94,10 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 }
 
 func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) {
-	sql1 := "SELECT id, app, instance, level, subject, body, args, created, resolved_by_user_id FROM reports WHERE id = ? LIMIT 1"
-	log.Debug().Str("sql", sql1).Msgf("going to SELECT report WHERE id = %d", reportID)
+	sql1 := "SELECT id, app, instance, level, subject, body, args, created, resolved_by_user_id " +
+		"FROM conomi_reports " +
+		"WHERE id = ? LIMIT 1"
+	log.Debug().Str("sql", sql1).Msgf("going to SELECT conomi_reports WHERE id = %d", reportID)
 	var resolvedByUserID sql.NullInt32
 	var instance, args sql.NullString
 	item := &general.Report{ResolvedByUserID: -1}
@@ -116,7 +120,7 @@ func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) 
 }
 
 func (rdb *ReportsDatabase) ResolveReport(reportID int, userID int) error {
-	sql1 := "UPDATE reports SET resolved_by_user_id = ? WHERE id = ? AND resolved_by_user_id IS NULL"
+	sql1 := "UPDATE conomi_reports SET resolved_by_user_id = ? WHERE id = ? AND resolved_by_user_id IS NULL"
 	log.Debug().Str("sql", sql1).Msgf("going to resolve report WHERE id = %d", reportID)
 	_, err := rdb.db.Exec(sql1, userID, reportID)
 	return err

@@ -38,23 +38,23 @@ type Actions struct {
 func (a *Actions) PostReport(ctx *gin.Context) {
 	report := general.Report{ResolvedByUserID: -1, Created: time.Now().In(a.loc)}
 	if err := ctx.ShouldBindJSON(&report); err != nil {
-		uniresp.WriteJSONErrorResponse(
-			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusBadRequest)
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusBadRequest)
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
 	reportID, err := rdb.InsertReport(report)
 	if err != nil {
-		uniresp.WriteJSONErrorResponse(
-			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusInternalServerError)
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusInternalServerError)
 		return
 	}
 	report.ID = reportID
 	for _, notifier := range a.n {
 		if notifier.ShouldBeSent(report) {
 			if err := notifier.SendNotification(report); err != nil {
-				uniresp.WriteJSONErrorResponse(
-					ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusInternalServerError)
+				uniresp.RespondWithErrorJSON(
+					ctx, err, http.StatusInternalServerError)
 				return
 			}
 		}
@@ -66,8 +66,8 @@ func (a *Actions) GetReports(ctx *gin.Context) {
 	rdb := engine.NewReportsDatabase(a.db)
 	reports, err := rdb.ListReports()
 	if err != nil {
-		uniresp.WriteJSONErrorResponse(
-			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusInternalServerError)
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusInternalServerError)
 		return
 	}
 	uniresp.WriteJSONResponse(ctx.Writer, reports)
@@ -77,21 +77,21 @@ func (a *Actions) ResolveReport(ctx *gin.Context) {
 	reportIDString := ctx.Param("reportId")
 	reportID, err := strconv.Atoi(reportIDString)
 	if err != nil {
-		uniresp.WriteJSONErrorResponse(
-			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusBadRequest)
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusBadRequest)
 		return
 	}
 	userIDString := ctx.Request.URL.Query().Get("user_id")
 	userID, err := strconv.Atoi(userIDString)
 	if err != nil {
-		uniresp.WriteJSONErrorResponse(
-			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusBadRequest)
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusBadRequest)
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
 	if err := rdb.ResolveReport(reportID, userID); err != nil {
-		uniresp.WriteJSONErrorResponse(
-			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusInternalServerError)
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusInternalServerError)
 		return
 	}
 	uniresp.WriteJSONResponse(ctx.Writer, map[string]bool{"ok": true})
@@ -101,15 +101,15 @@ func (a *Actions) GetReport(ctx *gin.Context) {
 	reportIDString := ctx.Param("reportId")
 	reportID, err := strconv.Atoi(reportIDString)
 	if err != nil {
-		uniresp.WriteJSONErrorResponse(
-			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusInternalServerError)
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusInternalServerError)
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
 	reports, err := rdb.SelectReport(reportID)
 	if err != nil {
-		uniresp.WriteJSONErrorResponse(
-			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusInternalServerError)
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusInternalServerError)
 		return
 	}
 	uniresp.WriteJSONResponse(ctx.Writer, reports)

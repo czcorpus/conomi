@@ -22,7 +22,7 @@ import (
 )
 
 func initDatabase(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS reports (
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS conomi_reports (
 		id int(11) NOT NULL AUTO_INCREMENT,
 		app varchar(50) NOT NULL,
 		instance varchar(50),
@@ -36,7 +36,7 @@ func initDatabase(db *sql.DB) error {
 	  )`)
 
 	if err != nil {
-		return fmt.Errorf("failed to CREATE table reports: %w", err)
+		return fmt.Errorf("failed to CREATE table conomi_reports: %w", err)
 	}
 
 	return nil
