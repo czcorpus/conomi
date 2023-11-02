@@ -1,4 +1,4 @@
-# :warning: *{{ .Report.Level | upper }} ({{ .Report.App }}{{ if .Report.Instance }}/{{ .Report.Instance }}{{ end }}):* {{ .Report.Subject }}
+# :warning: *{{ .Report.Level.String | upper }} ({{ .Report.App }}{{ if .Report.Instance }}/{{ .Report.Instance }}{{ end }}):* {{ .Report.Subject }}
 ---
 {{ .Report.Body }}
 {{ if .Info.PublicPath }}

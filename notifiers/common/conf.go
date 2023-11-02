@@ -17,7 +17,7 @@
 package common
 
 import (
-	"strings"
+	"fmt"
 
 	"github.com/czcorpus/conomi/general"
 )
@@ -30,13 +30,22 @@ type NotifierConf struct {
 }
 
 type FilterConf struct {
-	Levels []string `json:"levels"`
-	Apps   []string `json:"apps"`
+	Levels []general.SeverityLevel `json:"levels"`
+	Apps   []string                `json:"apps"`
 }
 
-func contains(slice []string, item string) bool {
+func (fc *FilterConf) Validate() error {
+	for _, level := range fc.Levels {
+		if !level.IsValid() {
+			return fmt.Errorf("invalid filter level `%s`", level.String())
+		}
+	}
+	return nil
+}
+
+func contains[T comparable](slice []T, item T) bool {
 	for _, a := range slice {
-		if strings.EqualFold(a, item) {
+		if a == item {
 			return true
 		}
 	}

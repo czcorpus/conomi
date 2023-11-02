@@ -18,6 +18,7 @@ package reporting
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -40,6 +41,11 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&report); err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusBadRequest)
+		return
+	}
+	if !report.Level.IsValid() {
+		uniresp.RespondWithErrorJSON(
+			ctx, fmt.Errorf("posted invalid level `%s`", report.Level.String()), http.StatusBadRequest)
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
