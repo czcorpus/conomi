@@ -55,11 +55,17 @@ func (en *emailNotifier) SendNotification(report general.Report) error {
 	); err != nil {
 		return err
 	}
+	subject := strings.ToUpper(report.Level) + ": " + report.Subject
+	if len(report.Instance) > 0 {
+		subject += " (" + report.App + "/" + report.Instance + ")"
+	} else {
+		subject += " (" + report.App + ")"
+	}
 	return mail.SendNotification(
 		en.args,
 		en.loc,
 		mail.FormattedNotification{
-			Subject: fmt.Sprintf("%s: %s (%s/%s)", strings.ToUpper(report.Level), report.Subject, report.App, report.Instance),
+			Subject: subject,
 			Divs:    []string{message.String()},
 		},
 	)
