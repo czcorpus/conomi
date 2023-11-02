@@ -35,7 +35,6 @@ type ReportsDatabase struct {
 
 func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 	sql1 := "INSERT INTO reports (app, instance, level, subject, body, args, created) VALUES (?,?,?,?,?,?,?)"
-	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
 	instance := sql.NullString{
 		String: report.Instance,
 		Valid:  len(report.Instance) > 0,
@@ -49,6 +48,7 @@ func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 		args.String = string(argsJSON)
 		args.Valid = true
 	}
+	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
 	result, err := rdb.db.Exec(sql1, report.App, instance, report.Level, report.Subject, report.Body, args, report.Created)
 	if err != nil {
 		return -1, err
