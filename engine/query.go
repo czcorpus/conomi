@@ -49,6 +49,7 @@ func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 		args.String = string(argsJSON)
 		args.Valid = true
 	}
+	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
 	result, err := rdb.db.Exec(sql1, report.App, instance, report.Level, report.Subject, report.Body, args, report.Created)
 	if err != nil {
 		return -1, err
