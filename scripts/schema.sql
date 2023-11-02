@@ -1,4 +1,4 @@
-CREATE TABLE reports (
+CREATE TABLE conomi_reports (
     id int(11) NOT NULL AUTO_INCREMENT,
     app varchar(50) NOT NULL,
     instance varchar(50),
