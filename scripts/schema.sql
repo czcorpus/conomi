@@ -1,7 +1,7 @@
 CREATE TABLE reports (
     id int(11) NOT NULL AUTO_INCREMENT,
     app varchar(50) NOT NULL,
-    instance varchar(50) NOT NULL,
+    instance varchar(50),
     level varchar(50) NOT NULL,
     subject text NOT NULL,
     body text NOT NULL,

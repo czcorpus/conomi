@@ -36,16 +36,20 @@ type ReportsDatabase struct {
 func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 	sql1 := "INSERT INTO reports (app, instance, level, subject, body, args, created) VALUES (?,?,?,?,?,?,?)"
 	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
-	argsNull := sql.NullString{Valid: false}
+	instance := sql.NullString{
+		String: report.Instance,
+		Valid:  len(report.Instance) > 0,
+	}
+	var args sql.NullString
 	if report.Args != nil {
-		args, err := json.Marshal(report.Args)
+		argsJSON, err := json.Marshal(report.Args)
 		if err != nil {
 			return -1, err
 		}
-		argsNull.String = string(args)
-		argsNull.Valid = true
+		args.String = string(argsJSON)
+		args.Valid = true
 	}
-	result, err := rdb.db.Exec(sql1, report.App, report.Instance, report.Level, report.Subject, report.Body, argsNull, report.Created)
+	result, err := rdb.db.Exec(sql1, report.App, instance, report.Level, report.Subject, report.Body, args, report.Created)
 	if err != nil {
 		return -1, err
 	}
@@ -65,16 +69,17 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 	}
 	ans := make([]*general.Report, 0, 100)
 	for rows.Next() {
-		item := &general.Report{ResolvedByUserID: -1}
 		var resolvedByUserID sql.NullInt32
-		var args sql.NullString
-		err := rows.Scan(&item.ID, &item.App, &item.Instance, &item.Level, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
+		var instance, args sql.NullString
+		item := &general.Report{ResolvedByUserID: -1}
+		err := rows.Scan(&item.ID, &item.App, &instance, &item.Level, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
 		if err != nil {
 			return ans, err
 		}
 		if resolvedByUserID.Valid {
 			item.ResolvedByUserID = int(resolvedByUserID.Int32)
 		}
+		item.Instance = instance.String
 		if args.Valid {
 			err = json.Unmarshal([]byte(args.String), &item.Args)
 			if err != nil {
@@ -89,17 +94,18 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) {
 	sql1 := "SELECT id, app, instance, level, subject, body, args, created, resolved_by_user_id FROM reports WHERE id = ? LIMIT 1"
 	log.Debug().Str("sql", sql1).Msgf("going to SELECT report WHERE id = %d", reportID)
-	row := rdb.db.QueryRow(sql1, reportID)
-	item := &general.Report{ResolvedByUserID: -1}
 	var resolvedByUserID sql.NullInt32
-	var args sql.NullString
-	err := row.Scan(&item.ID, &item.App, &item.Instance, &item.Level, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
+	var instance, args sql.NullString
+	item := &general.Report{ResolvedByUserID: -1}
+	row := rdb.db.QueryRow(sql1, reportID)
+	err := row.Scan(&item.ID, &item.App, &instance, &item.Level, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
 	if err != nil {
 		return nil, err
 	}
 	if resolvedByUserID.Valid {
 		item.ResolvedByUserID = int(resolvedByUserID.Int32)
 	}
+	item.Instance = instance.String
 	if args.Valid {
 		err = json.Unmarshal([]byte(args.String), &item.Args)
 		if err != nil {
