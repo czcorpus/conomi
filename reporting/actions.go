@@ -30,12 +30,13 @@ import (
 )
 
 type Actions struct {
-	db *sql.DB
-	n  []common.Notifier
+	loc *time.Location
+	db  *sql.DB
+	n   []common.Notifier
 }
 
 func (a *Actions) PostReport(ctx *gin.Context) {
-	report := general.Report{ResolvedByUserID: -1, Created: time.Now()}
+	report := general.Report{ResolvedByUserID: -1, Created: time.Now().In(a.loc)}
 	if err := ctx.ShouldBindJSON(&report); err != nil {
 		uniresp.WriteJSONErrorResponse(
 			ctx.Writer, uniresp.NewActionErrorFrom(err), http.StatusBadRequest)
@@ -114,9 +115,10 @@ func (a *Actions) GetReport(ctx *gin.Context) {
 	uniresp.WriteJSONResponse(ctx.Writer, reports)
 }
 
-func NewActions(db *sql.DB, n []common.Notifier) *Actions {
+func NewActions(loc *time.Location, db *sql.DB, n []common.Notifier) *Actions {
 	return &Actions{
-		db: db,
-		n:  n,
+		loc: loc,
+		db:  db,
+		n:   n,
 	}
 }

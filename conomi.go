@@ -71,7 +71,7 @@ func runApiServer(
 	if err != nil {
 		return err
 	}
-	r := reporting.NewActions(sqlDB, n)
+	r := reporting.NewActions(conf.TimezoneLocation(), sqlDB, n)
 	engine.POST("/report", r.PostReport)
 	engine.GET("/report/:reportId", r.GetReport)
 	engine.GET("/resolve/:reportId", r.ResolveReport)
