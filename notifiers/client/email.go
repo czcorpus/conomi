@@ -55,7 +55,7 @@ func (en *emailNotifier) SendNotification(report general.Report) error {
 	); err != nil {
 		return err
 	}
-	subject := strings.ToUpper(report.Level.String()) + ": " + report.Subject
+	subject := strings.ToUpper(report.Severity.String()) + ": " + report.Subject
 	if len(report.Instance) > 0 {
 		subject += " (" + report.App + "/" + report.Instance + ")"
 	} else {

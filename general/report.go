@@ -22,7 +22,7 @@ type Report struct {
 	ID               int            `json:"id"`
 	App              string         `json:"app"`
 	Instance         string         `json:"instance"`
-	Level            SeverityLevel  `json:"level"`
+	Severity         SeverityLevel  `json:"severity"`
 	Subject          string         `json:"subject"`
 	Body             string         `json:"body"`
 	Args             map[string]any `json:"args"`

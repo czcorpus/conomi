@@ -55,7 +55,7 @@ func contains[T comparable](slice []T, item T) bool {
 func (f *FilterConf) IsFiltered(message general.Report) bool {
 	validLevel, validApp := true, true
 	if f.Levels != nil {
-		validLevel = contains(f.Levels, message.Level)
+		validLevel = contains(f.Levels, message.Severity)
 	}
 	if f.Apps != nil {
 		validApp = contains(f.Apps, message.App)
