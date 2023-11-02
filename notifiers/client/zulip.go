@@ -17,6 +17,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -37,6 +38,7 @@ type ZulipNotifierArgs struct {
 	Token      string   `json:"token"`
 	Type       string   `json:"type"`
 	Recipients []string `json:"recipients"`
+	Topic      string   `json:"topic"`
 }
 
 type zulipNotifier struct {
@@ -55,8 +57,15 @@ func (zn *zulipNotifier) ShouldBeSent(report general.Report) bool {
 func (zn *zulipNotifier) SendNotification(report general.Report) error {
 	params := url.Values{}
 	params.Set("type", zn.args.Type)
-	for _, recipient := range zn.args.Recipients {
-		params.Add("to", recipient)
+	if zn.args.Type == "stream" {
+		params.Set("to", zn.args.Recipients[0])
+		params.Set("topic", zn.args.Topic)
+	} else {
+		if len(zn.args.Recipients) == 1 {
+			params.Set("to", zn.args.Recipients[0])
+		} else {
+			params.Set("to", strings.Join(zn.args.Recipients, ","))
+		}
 	}
 
 	var message strings.Builder
@@ -109,11 +118,26 @@ func NewZulipNotifier(
 	filter common.FilterConf,
 	loc *time.Location,
 ) (common.Notifier, error) {
+	switch args.Type {
+	case "direct":
+		if len(args.Recipients) == 0 {
+			return nil, errors.New("zulip `direct` type requires at least one recipient")
+		}
+	case "stream":
+		if len(args.Recipients) != 1 {
+			return nil, errors.New("zulip `stream` type requires exactly one recipient")
+		}
+		if len(args.Topic) == 0 {
+			return nil, errors.New("zulip `stream` type requires specified topic")
+		}
+	default:
+		return nil, fmt.Errorf("unknown zulip type `%s`, use `direct` or `stream`", args.Type)
+	}
 	tmpl, err := templates.GetTemplate("zulip.gtpl")
 	if err != nil {
 		return nil, err
 	}
-	log.Info().Msgf("creating zulip notifier `%s` of type `%s` with recipient(s) %s", name, args.Type, strings.Join(args.Recipients, ", "))
+	log.Info().Msgf("creating zulip notifier `%s` of type `%s` with recipient(s) %v > %s", name, args.Type, args.Recipients, args.Topic)
 	notifier := &zulipNotifier{
 		name:   name,
 		info:   info,

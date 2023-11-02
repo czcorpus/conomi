@@ -91,7 +91,7 @@ func NewEmailNotifier(
 	if err != nil {
 		return nil, err
 	}
-	log.Info().Msgf("creating e-mail notifier `%s` with recipient(s) %s", name, strings.Join(args.Recipients, ", "))
+	log.Info().Msgf("creating e-mail notifier `%s` with recipient(s) %v", name, args.Recipients)
 	notifier := &emailNotifier{
 		name:   name,
 		info:   info,
