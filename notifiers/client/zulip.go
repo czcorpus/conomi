@@ -61,11 +61,7 @@ func (zn *zulipNotifier) SendNotification(report general.Report) error {
 		params.Set("to", zn.args.Recipients[0])
 		params.Set("topic", zn.args.Topic)
 	} else {
-		if len(zn.args.Recipients) == 1 {
-			params.Set("to", zn.args.Recipients[0])
-		} else {
-			params.Set("to", strings.Join(zn.args.Recipients, ","))
-		}
+		params.Set("to", strings.Join(zn.args.Recipients, ","))
 	}
 
 	var message strings.Builder

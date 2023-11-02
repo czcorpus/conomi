@@ -16,16 +16,18 @@
 
 package general
 
-import "time"
+type SeverityLevel string
 
-type Report struct {
-	ID               int            `json:"id"`
-	App              string         `json:"app"`
-	Instance         string         `json:"instance"`
-	Level            SeverityLevel  `json:"level"`
-	Subject          string         `json:"subject"`
-	Body             string         `json:"body"`
-	Args             map[string]any `json:"args"`
-	Created          time.Time      `json:"created"`
-	ResolvedByUserID int            `json:"resolvedByUserId"`
+const (
+	SEVERITY_LEVEL_INFO     = "info"
+	SEVERITY_LEVEL_WARNING  = "warning"
+	SEVERITY_LEVEL_CRITICAL = "critical"
+)
+
+func (sl SeverityLevel) IsValid() bool {
+	return sl == SEVERITY_LEVEL_INFO || sl == SEVERITY_LEVEL_WARNING || sl == SEVERITY_LEVEL_CRITICAL
+}
+
+func (sl SeverityLevel) String() string {
+	return string(sl)
 }
