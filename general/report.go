@@ -19,12 +19,13 @@ package general
 import "time"
 
 type Report struct {
-	ID               int       `json:"id"`
-	App              string    `json:"app"`
-	Instance         string    `json:"instance"`
-	Level            string    `json:"level"`
-	Subject          string    `json:"subject"`
-	Body             string    `json:"body"`
-	Created          time.Time `json:"created"`
-	ResolvedByUserID int       `json:"resolvedByUserId"`
+	ID               int            `json:"id"`
+	App              string         `json:"app"`
+	Instance         string         `json:"instance"`
+	Level            string         `json:"level"`
+	Subject          string         `json:"subject"`
+	Body             string         `json:"body"`
+	Args             map[string]any `json:"args"`
+	Created          time.Time      `json:"created"`
+	ResolvedByUserID int            `json:"resolvedByUserId"`
 }

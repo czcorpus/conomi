@@ -19,6 +19,7 @@ package engine
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/czcorpus/conomi/general"
 	"github.com/rs/zerolog/log"
@@ -33,9 +34,18 @@ type ReportsDatabase struct {
 }
 
 func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
-	sql1 := "INSERT INTO reports (app, instance, level, subject, body, created) VALUES (?,?,?,?,?,?)"
+	sql1 := "INSERT INTO reports (app, instance, level, subject, body, args, created) VALUES (?,?,?,?,?,?,?)"
 	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
-	result, err := rdb.db.Exec(sql1, report.App, report.Instance, report.Level, report.Subject, report.Body, report.Created)
+	argsNull := sql.NullString{Valid: false}
+	if report.Args != nil {
+		args, err := json.Marshal(report.Args)
+		if err != nil {
+			return -1, err
+		}
+		argsNull.String = string(args)
+		argsNull.Valid = true
+	}
+	result, err := rdb.db.Exec(sql1, report.App, report.Instance, report.Level, report.Subject, report.Body, argsNull, report.Created)
 	if err != nil {
 		return -1, err
 	}
@@ -47,7 +57,7 @@ func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 }
 
 func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
-	sql1 := "SELECT id, app, instance, level, subject, body, created, resolved_by_user_id FROM reports WHERE resolved_by_user_id IS NULL"
+	sql1 := "SELECT id, app, instance, level, subject, body, args, created, resolved_by_user_id FROM reports WHERE resolved_by_user_id IS NULL"
 	log.Debug().Str("sql", sql1).Msg("going to SELECT reports WHERE resolved_by_user_id IS NULL")
 	rows, err := rdb.db.Query(sql1)
 	if err != nil {
@@ -57,12 +67,19 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 	for rows.Next() {
 		item := &general.Report{ResolvedByUserID: -1}
 		var resolvedByUserID sql.NullInt32
-		err := rows.Scan(&item.ID, &item.App, &item.Instance, &item.Level, &item.Subject, &item.Body, &item.Created, &resolvedByUserID)
+		var args sql.NullString
+		err := rows.Scan(&item.ID, &item.App, &item.Instance, &item.Level, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
 		if err != nil {
 			return ans, err
 		}
 		if resolvedByUserID.Valid {
 			item.ResolvedByUserID = int(resolvedByUserID.Int32)
+		}
+		if args.Valid {
+			err = json.Unmarshal([]byte(args.String), &item.Args)
+			if err != nil {
+				return ans, err
+			}
 		}
 		ans = append(ans, item)
 	}
@@ -70,17 +87,24 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 }
 
 func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) {
-	sql1 := "SELECT id, app, instance, level, subject, body, created, resolved_by_user_id FROM reports WHERE id = ? LIMIT 1"
+	sql1 := "SELECT id, app, instance, level, subject, body, args, created, resolved_by_user_id FROM reports WHERE id = ? LIMIT 1"
 	log.Debug().Str("sql", sql1).Msgf("going to SELECT report WHERE id = %d", reportID)
 	row := rdb.db.QueryRow(sql1, reportID)
 	item := &general.Report{ResolvedByUserID: -1}
 	var resolvedByUserID sql.NullInt32
-	err := row.Scan(&item.ID, &item.App, &item.Instance, &item.Level, &item.Subject, &item.Body, &item.Created, &resolvedByUserID)
+	var args sql.NullString
+	err := row.Scan(&item.ID, &item.App, &item.Instance, &item.Level, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
 	if err != nil {
 		return nil, err
 	}
 	if resolvedByUserID.Valid {
 		item.ResolvedByUserID = int(resolvedByUserID.Int32)
+	}
+	if args.Valid {
+		err = json.Unmarshal([]byte(args.String), &item.Args)
+		if err != nil {
+			return item, err
+		}
 	}
 	return item, nil
 }

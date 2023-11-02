@@ -5,6 +5,7 @@ CREATE TABLE reports (
     level varchar(50) NOT NULL,
     subject text NOT NULL,
     body text NOT NULL,
+    args json,
     created datetime DEFAULT NOW() NOT NULL,
     resolved_by_user_id int DEFAULT NULL,
     PRIMARY KEY (id)
