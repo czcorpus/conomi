@@ -40,6 +40,7 @@ type ZulipNotifierArgs struct {
 }
 
 type zulipNotifier struct {
+	name   string
 	info   general.GeneralInfo
 	args   *ZulipNotifierArgs
 	filter common.FilterConf
@@ -59,7 +60,14 @@ func (zn *zulipNotifier) SendNotification(report general.Report) error {
 	}
 
 	var message strings.Builder
-	if err := zn.tmpl.Execute(&message, templates.TemplateData{Report: report, Info: zn.info}); err != nil {
+	if err := zn.tmpl.Execute(
+		&message,
+		templates.TemplateData{
+			NotifierName: zn.name,
+			Report:       report,
+			Info:         zn.info,
+		},
+	); err != nil {
 		return err
 	}
 	params.Add("content", message.String())
@@ -95,6 +103,7 @@ func (zn *zulipNotifier) SendNotification(report general.Report) error {
 }
 
 func NewZulipNotifier(
+	name string,
 	info general.GeneralInfo,
 	args *ZulipNotifierArgs,
 	filter common.FilterConf,
@@ -104,8 +113,9 @@ func NewZulipNotifier(
 	if err != nil {
 		return nil, err
 	}
-	log.Info().Msgf("creating zulip notifier of type `%s` with recipient(s) %s", args.Type, strings.Join(args.Recipients, ", "))
+	log.Info().Msgf("creating zulip notifier `%s` of type `%s` with recipient(s) %s", name, args.Type, strings.Join(args.Recipients, ", "))
 	notifier := &zulipNotifier{
+		name:   name,
 		info:   info,
 		args:   args,
 		filter: filter,

@@ -25,8 +25,9 @@ import (
 )
 
 type TemplateData struct {
-	Info   general.GeneralInfo
-	Report general.Report
+	NotifierName string
+	Info         general.GeneralInfo
+	Report       general.Report
 }
 
 func GetTemplate(name string) (*template.Template, error) {

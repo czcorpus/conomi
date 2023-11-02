@@ -31,6 +31,7 @@ import (
 )
 
 type emailNotifier struct {
+	name   string
 	info   general.GeneralInfo
 	args   *mail.NotificationConf
 	filter common.FilterConf
@@ -44,7 +45,14 @@ func (en *emailNotifier) ShouldBeSent(report general.Report) bool {
 
 func (en *emailNotifier) SendNotification(report general.Report) error {
 	var message strings.Builder
-	if err := en.tmpl.Execute(&message, templates.TemplateData{Report: report, Info: en.info}); err != nil {
+	if err := en.tmpl.Execute(
+		&message,
+		templates.TemplateData{
+			NotifierName: en.name,
+			Report:       report,
+			Info:         en.info,
+		},
+	); err != nil {
 		return err
 	}
 	return mail.SendNotification(
@@ -58,6 +66,7 @@ func (en *emailNotifier) SendNotification(report general.Report) error {
 }
 
 func NewEmailNotifier(
+	name string,
 	info general.GeneralInfo,
 	args *mail.NotificationConf,
 	filter common.FilterConf,
@@ -76,8 +85,9 @@ func NewEmailNotifier(
 	if err != nil {
 		return nil, err
 	}
-	log.Info().Msgf("creating e-mail notifier with recipient(s) %s", strings.Join(args.Recipients, ", "))
+	log.Info().Msgf("creating e-mail notifier `%s` with recipient(s) %s", name, strings.Join(args.Recipients, ", "))
 	notifier := &emailNotifier{
+		name:   name,
 		info:   info,
 		args:   args,
 		filter: filter,

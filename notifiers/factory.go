@@ -28,7 +28,7 @@ import (
 )
 
 func NotifiersFactory(
-	version general.GeneralInfo,
+	info general.GeneralInfo,
 	notifiersConf []common.NotifierConf,
 	loc *time.Location,
 ) ([]common.Notifier, error) {
@@ -41,7 +41,7 @@ func NotifiersFactory(
 			if err != nil {
 				return nil, fmt.Errorf("invalid email notifier conf: %s", err)
 			}
-			notifiers[i], err = client.NewEmailNotifier(version, &emailConf, conf.Filter, loc)
+			notifiers[i], err = client.NewEmailNotifier(conf.Name, info, &emailConf, conf.Filter, loc)
 			if err != nil {
 				return nil, err
 			}
@@ -51,7 +51,7 @@ func NotifiersFactory(
 			if err != nil {
 				return nil, fmt.Errorf("invalid zulip notifier conf: %s", err)
 			}
-			notifiers[i], err = client.NewZulipNotifier(version, &zulipConf, conf.Filter, loc)
+			notifiers[i], err = client.NewZulipNotifier(conf.Name, info, &zulipConf, conf.Filter, loc)
 			if err != nil {
 				return nil, err
 			}
