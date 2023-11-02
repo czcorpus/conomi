@@ -19,13 +19,13 @@ package general
 type SeverityLevel string
 
 const (
-	SEVERITY_LEVEL_INFO     = "info"
-	SEVERITY_LEVEL_WARNING  = "warning"
-	SEVERITY_LEVEL_CRITICAL = "critical"
+	SeverityLevelInfo     = "info"
+	SeverityLevelWarning  = "warning"
+	SeverityLevelCritical = "critical"
 )
 
 func (sl SeverityLevel) IsValid() bool {
-	return sl == SEVERITY_LEVEL_INFO || sl == SEVERITY_LEVEL_WARNING || sl == SEVERITY_LEVEL_CRITICAL
+	return sl == SeverityLevelInfo || sl == SeverityLevelWarning || sl == SeverityLevelCritical
 }
 
 func (sl SeverityLevel) String() string {

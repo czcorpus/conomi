@@ -50,7 +50,7 @@ func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 		args.Valid = true
 	}
 	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
-	result, err := rdb.db.Exec(sql1, report.App, instance, report.Level, report.Subject, report.Body, args, report.Created)
+	result, err := rdb.db.Exec(sql1, report.App, instance, report.Severity, report.Subject, report.Body, args, report.Created)
 	if err != nil {
 		return -1, err
 	}
@@ -75,7 +75,7 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 		var resolvedByUserID sql.NullInt32
 		var instance, args sql.NullString
 		item := &general.Report{ResolvedByUserID: -1}
-		err := rows.Scan(&item.ID, &item.App, &instance, &item.Level, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
+		err := rows.Scan(&item.ID, &item.App, &instance, &item.Severity, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
 		if err != nil {
 			return ans, err
 		}
@@ -103,7 +103,7 @@ func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) 
 	var instance, args sql.NullString
 	item := &general.Report{ResolvedByUserID: -1}
 	row := rdb.db.QueryRow(sql1, reportID)
-	err := row.Scan(&item.ID, &item.App, &instance, &item.Level, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
+	err := row.Scan(&item.ID, &item.App, &instance, &item.Severity, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
 	if err != nil {
 		return nil, err
 	}

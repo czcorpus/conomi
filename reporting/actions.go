@@ -43,9 +43,9 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 			ctx, err, http.StatusBadRequest)
 		return
 	}
-	if !report.Level.IsValid() {
+	if !report.Severity.IsValid() {
 		uniresp.RespondWithErrorJSON(
-			ctx, fmt.Errorf("posted invalid level `%s`", report.Level.String()), http.StatusBadRequest)
+			ctx, fmt.Errorf("posted invalid level `%s`", report.Severity.String()), http.StatusBadRequest)
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
