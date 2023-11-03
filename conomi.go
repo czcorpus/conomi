@@ -80,6 +80,7 @@ func runApiServer(
 	engine.POST("/report", r.PostReport)
 	engine.GET("/report/:reportId", r.GetReport)
 	engine.GET("/resolve/:reportId", r.ResolveReport)
+	engine.GET("/resolve-since/:reportId", r.ResolveReportsSince)
 	engine.GET("/reports", r.GetReports)
 
 	log.Info().Msgf("starting to listen at %s:%d", conf.ListenAddress, conf.ListenPort)

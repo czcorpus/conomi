@@ -20,6 +20,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
 
 	"github.com/czcorpus/conomi/general"
 	"github.com/rs/zerolog/log"
@@ -131,19 +132,53 @@ func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) 
 	return item, nil
 }
 
-func (rdb *ReportsDatabase) ResolveReport(reportID int, userID int) error {
+func (rdb *ReportsDatabase) ResolveReport(reportID int, userID int) (int, error) {
 	sql1 := "UPDATE conomi_reports SET resolved_by_user_id = ? WHERE id = ? AND resolved_by_user_id IS NULL"
 	log.Debug().Str("sql", sql1).Msgf("going to resolve report WHERE id = %d", reportID)
-	_, err := rdb.db.Exec(sql1, userID, reportID)
-	return err
+	result, err := rdb.db.Exec(sql1, userID, reportID)
+	if err != nil {
+		return 0, err
+	}
+	rows, err := result.RowsAffected()
+	return int(rows), err
+}
+
+func (rdb *ReportsDatabase) ResolveReportsSince(reportID int, userID int) (int, error) {
+	report, err := rdb.SelectReport(reportID)
+	if err != nil {
+		return 0, err
+	}
+	sql1 := "UPDATE conomi_reports SET resolved_by_user_id = ? WHERE "
+	where := []string{"resolved_by_user_id IS NULL", "app = ?", "created >= ?"}
+	params := []any{userID, report.App, report.Created}
+	if len(report.Instance) > 0 {
+		where = append(where, "instance = ?")
+		params = append(params, report.Instance)
+	} else {
+		where = append(where, "instance IS NULL")
+	}
+	if len(report.Tag) > 0 {
+		where = append(where, "tag = ?")
+		params = append(params, report.Tag)
+	} else {
+		where = append(where, "tag IS NULL")
+	}
+	sql1 += strings.Join(where, " AND ")
+	log.Debug().Str("sql", sql1).Msgf("going to resolve new reports WHERE id = %d", reportID)
+	result, err := rdb.db.Exec(sql1, params...)
+	if err != nil {
+		return 0, err
+	}
+	rows, err := result.RowsAffected()
+	return int(rows), err
 }
 
 func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
-	sql1 := "select app, instance, tag, " +
-		"sum(case when severity = \"critical\" then 1 else 0 end), " +
-		"sum(case when severity = \"warning\" then 1 else 0 end), " +
-		"sum(case when severity = \"info\" then 1 else 0 end) " +
-		"from conomi_reports where resolved_by_user_id is NULL group by app, instance, tag"
+	sql1 := "SELECT app, instance, tag, " +
+		"SUM(CASE WHEN severity = \"critical\" THEN 1 ELSE 0 END), " +
+		"SUM(CASE WHEN severity = \"warning\" THEN 1 ELSE 0 END), " +
+		"SUM(CASE WHEN severity = \"info\" THEN 1 ELSE 0 END) " +
+		"FROM conomi_reports WHERE resolved_by_user_id IS NULL GROUP BY app, instance, tag"
 	log.Debug().Str("sql", sql1).Msg("going to count conomi_reports WHERE resolved_by_user_id IS NULL")
 	rows, err := rdb.db.Query(sql1)
 	if err != nil {
