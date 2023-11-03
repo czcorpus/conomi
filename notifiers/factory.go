@@ -34,10 +34,6 @@ func NotifiersFactory(
 ) ([]common.Notifier, error) {
 	notifiers := make([]common.Notifier, len(notifiersConf))
 	for i, conf := range notifiersConf {
-		err := conf.Filter.Validate()
-		if err != nil {
-			return nil, err
-		}
 		switch conf.Type {
 		case "email":
 			var emailConf mail.NotificationConf

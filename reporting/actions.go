@@ -18,7 +18,6 @@ package reporting
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -43,9 +42,9 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 			ctx, err, http.StatusBadRequest)
 		return
 	}
-	if !report.Severity.IsValid() {
+	if err := report.Severity.Validate(); err != nil {
 		uniresp.RespondWithErrorJSON(
-			ctx, fmt.Errorf("posted invalid level `%s`", report.Severity.String()), http.StatusBadRequest)
+			ctx, err, http.StatusBadRequest)
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)

@@ -114,4 +114,9 @@ func ValidateAndDefaults(conf *Conf) {
 	if _, err := time.LoadLocation(conf.TimeZone); err != nil {
 		log.Fatal().Err(err).Msg("invalid time zone")
 	}
+	for _, notifier := range conf.Notifiers {
+		if err := notifier.Filter.Validate(); err != nil {
+			log.Fatal().Err(err).Msg("invalid filter")
+		}
+	}
 }

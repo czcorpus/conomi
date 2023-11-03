@@ -35,7 +35,6 @@ type ReportsDatabase struct {
 
 func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 	sql1 := "INSERT INTO conomi_reports (app, instance, level, subject, body, args, created) VALUES (?,?,?,?,?,?,?)"
-	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
 	instance := sql.NullString{
 		String: report.Instance,
 		Valid:  len(report.Instance) > 0,
@@ -77,7 +76,10 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 		item := &general.Report{ResolvedByUserID: -1}
 		err := rows.Scan(&item.ID, &item.App, &instance, &item.Severity, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
 		if err != nil {
-			return ans, err
+			return nil, err
+		}
+		if err := item.Severity.Validate(); err != nil {
+			return nil, err
 		}
 		if resolvedByUserID.Valid {
 			item.ResolvedByUserID = int(resolvedByUserID.Int32)
@@ -86,7 +88,7 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 		if args.Valid {
 			err = json.Unmarshal([]byte(args.String), &item.Args)
 			if err != nil {
-				return ans, err
+				return nil, err
 			}
 		}
 		ans = append(ans, item)
@@ -107,6 +109,9 @@ func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) 
 	if err != nil {
 		return nil, err
 	}
+	if err := item.Severity.Validate(); err != nil {
+		return nil, err
+	}
 	if resolvedByUserID.Valid {
 		item.ResolvedByUserID = int(resolvedByUserID.Int32)
 	}
@@ -114,7 +119,7 @@ func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) 
 	if args.Valid {
 		err = json.Unmarshal([]byte(args.String), &item.Args)
 		if err != nil {
-			return item, err
+			return nil, err
 		}
 	}
 	return item, nil

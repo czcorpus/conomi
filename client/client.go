@@ -17,12 +17,12 @@ package client
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
 	"github.com/czcorpus/conomi/general"
+	"github.com/rs/zerolog/log"
 )
 
 type ConomiClientConf struct {
@@ -77,7 +77,7 @@ func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject strin
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(respBody))
+	log.Debug().Str("response", string(respBody)).Msg("zulip post performed")
 	return nil
 }
 
