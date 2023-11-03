@@ -22,13 +22,15 @@ import (
 
 	"github.com/czcorpus/conomi/engine"
 	"github.com/czcorpus/conomi/general"
+	"github.com/czcorpus/conomi/notifiers"
 )
 
 const escalateWarningCount = 10
 
 type Escalator struct {
-	counts map[string]*general.ReportCount
-	db     *sql.DB
+	counts    map[string]*general.ReportCount
+	db        *sql.DB
+	notifiers *notifiers.Notifiers
 }
 
 func (e *Escalator) makeKey(app, instance, tag string) string {
@@ -40,7 +42,7 @@ func (e *Escalator) Set(count *general.ReportCount) {
 	e.counts[key] = count
 }
 
-func (e *Escalator) Add(report *general.Report) bool {
+func (e *Escalator) HandleReport(report *general.Report) error {
 	key := e.makeKey(report.App, report.Instance, report.Tag)
 	count, ok := e.counts[key]
 	if !ok {
@@ -58,17 +60,23 @@ func (e *Escalator) Add(report *general.Report) bool {
 
 	lastEscalated := count.Escalated
 	count.Escalated = count.Critical > 0 || count.Warning > escalateWarningCount
-	// return if report just escalated
-	return !lastEscalated && count.Escalated
-}
-
-func (e *Escalator) IsEscalated(report *general.Report) bool {
-	key := e.makeKey(report.App, report.Instance, report.Tag)
-	count, ok := e.counts[key]
-	if ok {
-		return count.Escalated
+	if !lastEscalated && count.Escalated {
+		err := e.notifiers.SendNotifications(&general.Report{
+			App:      report.App,
+			Instance: report.Instance,
+			Tag:      report.Tag,
+			Severity: general.SeverityLevelCritical,
+			Subject:  "Service escalated!",
+			Body:     "Subsequent reports will be escalated to CRITICAL",
+		})
+		if err != nil {
+			return err
+		}
 	}
-	return false
+	if count.Escalated {
+		report.Severity = general.SeverityLevelCritical
+	}
+	return nil
 }
 
 func (e *Escalator) Reload() error {
@@ -84,8 +92,11 @@ func (e *Escalator) Reload() error {
 	return nil
 }
 
-func NewEscalator(sqlDB *sql.DB) (*Escalator, error) {
-	escalator := Escalator{db: sqlDB}
+func NewEscalator(sqlDB *sql.DB, notifiers *notifiers.Notifiers) (*Escalator, error) {
+	escalator := Escalator{
+		db:        sqlDB,
+		notifiers: notifiers,
+	}
 	if err := escalator.Reload(); err != nil {
 		return nil, err
 	}

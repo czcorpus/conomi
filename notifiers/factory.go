@@ -27,12 +27,12 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-func NotifiersFactory(
+func clientsFactory(
 	info general.GeneralInfo,
 	notifiersConf []common.NotifierConf,
 	loc *time.Location,
 ) ([]common.Notifier, error) {
-	notifiers := make([]common.Notifier, len(notifiersConf))
+	clients := make([]common.Notifier, len(notifiersConf))
 	for i, conf := range notifiersConf {
 		switch conf.Type {
 		case "email":
@@ -41,7 +41,7 @@ func NotifiersFactory(
 			if err != nil {
 				return nil, fmt.Errorf("invalid email notifier conf: %s", err)
 			}
-			notifiers[i], err = client.NewEmailNotifier(conf.Name, info, &emailConf, conf.Filter, loc)
+			clients[i], err = client.NewEmailNotifier(conf.Name, info, &emailConf, conf.Filter, loc)
 			if err != nil {
 				return nil, err
 			}
@@ -51,7 +51,7 @@ func NotifiersFactory(
 			if err != nil {
 				return nil, fmt.Errorf("invalid zulip notifier conf: %s", err)
 			}
-			notifiers[i], err = client.NewZulipNotifier(conf.Name, info, &zulipConf, conf.Filter, loc)
+			clients[i], err = client.NewZulipNotifier(conf.Name, info, &zulipConf, conf.Filter, loc)
 			if err != nil {
 				return nil, err
 			}
@@ -59,5 +59,28 @@ func NotifiersFactory(
 			return nil, fmt.Errorf("unknown notifier type %s", conf.Type)
 		}
 	}
-	return notifiers, nil
+	return clients, nil
+}
+
+type Notifiers struct {
+	notifiers []common.Notifier
+}
+
+func (n *Notifiers) SendNotifications(report *general.Report) error {
+	for _, client := range n.notifiers {
+		if client.ShouldBeSent(report) {
+			if err := client.SendNotification(report); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func NewNotifiers(info general.GeneralInfo, notifiersConf []common.NotifierConf, loc *time.Location) (*Notifiers, error) {
+	clients, err := clientsFactory(info, notifiersConf, loc)
+	if err != nil {
+		return nil, err
+	}
+	return &Notifiers{notifiers: clients}, nil
 }

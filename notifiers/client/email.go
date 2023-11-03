@@ -39,17 +39,17 @@ type emailNotifier struct {
 	tmpl   *template.Template
 }
 
-func (en *emailNotifier) ShouldBeSent(report general.Report) bool {
+func (en *emailNotifier) ShouldBeSent(report *general.Report) bool {
 	return en.filter.IsFiltered(report)
 }
 
-func (en *emailNotifier) SendNotification(report general.Report) error {
+func (en *emailNotifier) SendNotification(report *general.Report) error {
 	var message strings.Builder
 	if err := en.tmpl.Execute(
 		&message,
 		templates.TemplateData{
 			NotifierName: en.name,
-			Report:       report,
+			Report:       *report,
 			Info:         en.info,
 		},
 	); err != nil {

@@ -19,6 +19,6 @@ package common
 import "github.com/czcorpus/conomi/general"
 
 type Notifier interface {
-	ShouldBeSent(report general.Report) bool
-	SendNotification(report general.Report) error
+	ShouldBeSent(report *general.Report) bool
+	SendNotification(report *general.Report) error
 }

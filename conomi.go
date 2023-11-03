@@ -68,11 +68,11 @@ func runApiServer(
 	engine.NoMethod(uniresp.NoMethodHandler)
 	engine.NoRoute(uniresp.NotFoundHandler)
 
-	n, err := notifiers.NotifiersFactory(info, conf.Notifiers, conf.TimezoneLocation())
+	n, err := notifiers.NewNotifiers(info, conf.Notifiers, conf.TimezoneLocation())
 	if err != nil {
 		return err
 	}
-	e, err := escalator.NewEscalator(sqlDB)
+	e, err := escalator.NewEscalator(sqlDB, n)
 	if err != nil {
 		return err
 	}
