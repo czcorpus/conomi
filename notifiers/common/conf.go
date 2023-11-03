@@ -17,8 +17,6 @@
 package common
 
 import (
-	"fmt"
-
 	"github.com/czcorpus/conomi/general"
 )
 
@@ -36,8 +34,8 @@ type FilterConf struct {
 
 func (fc *FilterConf) Validate() error {
 	for _, level := range fc.Levels {
-		if !level.IsValid() {
-			return fmt.Errorf("invalid filter level `%s`", level.String())
+		if err := level.Validate(); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -52,7 +50,7 @@ func contains[T comparable](slice []T, item T) bool {
 	return false
 }
 
-func (f *FilterConf) IsFiltered(message general.Report) bool {
+func (f *FilterConf) IsFiltered(message *general.Report) bool {
 	validLevel, validApp := true, true
 	if f.Levels != nil {
 		validLevel = contains(f.Levels, message.Severity)

@@ -16,16 +16,29 @@
 
 package general
 
+import (
+	"fmt"
+)
+
 type SeverityLevel string
 
 const (
-	SeverityLevelInfo     = "info"
-	SeverityLevelWarning  = "warning"
-	SeverityLevelCritical = "critical"
+	SeverityLevelInfo     SeverityLevel = "info"
+	SeverityLevelWarning  SeverityLevel = "warning"
+	SeverityLevelCritical SeverityLevel = "critical"
 )
 
-func (sl SeverityLevel) IsValid() bool {
-	return sl == SeverityLevelInfo || sl == SeverityLevelWarning || sl == SeverityLevelCritical
+func (sl SeverityLevel) Validate() error {
+	if !(sl == SeverityLevelInfo || sl == SeverityLevelWarning || sl == SeverityLevelCritical) {
+		return fmt.Errorf(
+			"invalid level `%s`, use: `%s`, `%s` or `%s`",
+			sl,
+			SeverityLevelInfo,
+			SeverityLevelWarning,
+			SeverityLevelCritical,
+		)
+	}
+	return nil
 }
 
 func (sl SeverityLevel) String() string {

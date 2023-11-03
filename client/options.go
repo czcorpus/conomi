@@ -1,6 +1,4 @@
 // Copyright 2023 Martin Zimandl <martin.zimandl@gmail.com>
-// Copyright 2023 Institute of the Czech National Corpus,
-//                Faculty of Arts, Charles University
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,11 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package common
+package client
 
-import "github.com/czcorpus/conomi/general"
+type ReportOption func(c *conomiReport)
 
-type Notifier interface {
-	ShouldBeSent(report *general.Report) bool
-	SendNotification(report *general.Report) error
+func WithTag(tag string) ReportOption {
+	return func(c *conomiReport) {
+		c.Tag = tag
+	}
+}
+
+func WithArgs(args map[string]any) ReportOption {
+	return func(c *conomiReport) {
+		c.Args = args
+	}
 }

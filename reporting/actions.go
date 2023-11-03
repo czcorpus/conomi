@@ -18,22 +18,23 @@ package reporting
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/czcorpus/cnc-gokit/uniresp"
 	"github.com/czcorpus/conomi/engine"
+	"github.com/czcorpus/conomi/escalator"
 	"github.com/czcorpus/conomi/general"
-	"github.com/czcorpus/conomi/notifiers/common"
+	"github.com/czcorpus/conomi/notifiers"
 	"github.com/gin-gonic/gin"
 )
 
 type Actions struct {
 	loc *time.Location
 	db  *sql.DB
-	n   []common.Notifier
+	n   *notifiers.Notifiers
+	e   *escalator.Escalator
 }
 
 func (a *Actions) PostReport(ctx *gin.Context) {
@@ -43,9 +44,9 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 			ctx, err, http.StatusBadRequest)
 		return
 	}
-	if !report.Severity.IsValid() {
+	if err := report.Severity.Validate(); err != nil {
 		uniresp.RespondWithErrorJSON(
-			ctx, fmt.Errorf("posted invalid level `%s`", report.Severity.String()), http.StatusBadRequest)
+			ctx, err, http.StatusBadRequest)
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
@@ -56,14 +57,15 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 		return
 	}
 	report.ID = reportID
-	for _, notifier := range a.n {
-		if notifier.ShouldBeSent(report) {
-			if err := notifier.SendNotification(report); err != nil {
-				uniresp.RespondWithErrorJSON(
-					ctx, err, http.StatusInternalServerError)
-				return
-			}
-		}
+	if err := a.e.HandleReport(&report); err != nil {
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusInternalServerError)
+		return
+	}
+	if err := a.n.SendNotifications(&report); err != nil {
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusInternalServerError)
+		return
 	}
 	uniresp.WriteJSONResponse(ctx.Writer, report)
 }
@@ -95,12 +97,48 @@ func (a *Actions) ResolveReport(ctx *gin.Context) {
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
-	if err := rdb.ResolveReport(reportID, userID); err != nil {
+	rows, err := rdb.ResolveReport(reportID, userID)
+	if err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)
 		return
 	}
-	uniresp.WriteJSONResponse(ctx.Writer, map[string]bool{"ok": true})
+	if err := a.e.Reload(); err != nil {
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusInternalServerError)
+		return
+	}
+	uniresp.WriteJSONResponse(ctx.Writer, map[string]int{"resolved": rows})
+}
+
+func (a *Actions) ResolveReportsSince(ctx *gin.Context) {
+	reportIDString := ctx.Param("reportId")
+	reportID, err := strconv.Atoi(reportIDString)
+	if err != nil {
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusBadRequest)
+		return
+	}
+	userIDString := ctx.Request.URL.Query().Get("user_id")
+	userID, err := strconv.Atoi(userIDString)
+	if err != nil {
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusBadRequest)
+		return
+	}
+	rdb := engine.NewReportsDatabase(a.db)
+	rows, err := rdb.ResolveReportsSince(reportID, userID)
+	if err != nil {
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusInternalServerError)
+		return
+	}
+	if err := a.e.Reload(); err != nil {
+		uniresp.RespondWithErrorJSON(
+			ctx, err, http.StatusInternalServerError)
+		return
+	}
+	uniresp.WriteJSONResponse(ctx.Writer, map[string]int{"resolved": rows})
 }
 
 func (a *Actions) GetReport(ctx *gin.Context) {
@@ -121,10 +159,11 @@ func (a *Actions) GetReport(ctx *gin.Context) {
 	uniresp.WriteJSONResponse(ctx.Writer, reports)
 }
 
-func NewActions(loc *time.Location, db *sql.DB, n []common.Notifier) *Actions {
+func NewActions(loc *time.Location, db *sql.DB, n *notifiers.Notifiers, e *escalator.Escalator) *Actions {
 	return &Actions{
 		loc: loc,
 		db:  db,
 		n:   n,
+		e:   e,
 	}
 }

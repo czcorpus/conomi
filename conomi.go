@@ -31,6 +31,7 @@ import (
 	"github.com/czcorpus/cnc-gokit/logging"
 	"github.com/czcorpus/cnc-gokit/uniresp"
 	"github.com/czcorpus/conomi/engine"
+	"github.com/czcorpus/conomi/escalator"
 	"github.com/czcorpus/conomi/general"
 	"github.com/czcorpus/conomi/notifiers"
 	"github.com/czcorpus/conomi/reporting"
@@ -67,14 +68,19 @@ func runApiServer(
 	engine.NoMethod(uniresp.NoMethodHandler)
 	engine.NoRoute(uniresp.NotFoundHandler)
 
-	n, err := notifiers.NotifiersFactory(info, conf.Notifiers, conf.TimezoneLocation())
+	n, err := notifiers.NewNotifiers(info, conf.Notifiers, conf.TimezoneLocation())
 	if err != nil {
 		return err
 	}
-	r := reporting.NewActions(conf.TimezoneLocation(), sqlDB, n)
+	e, err := escalator.NewEscalator(sqlDB, n)
+	if err != nil {
+		return err
+	}
+	r := reporting.NewActions(conf.TimezoneLocation(), sqlDB, n, e)
 	engine.POST("/report", r.PostReport)
 	engine.GET("/report/:reportId", r.GetReport)
 	engine.GET("/resolve/:reportId", r.ResolveReport)
+	engine.GET("/resolve-since/:reportId", r.ResolveReportsSince)
 	engine.GET("/reports", r.GetReports)
 
 	log.Info().Msgf("starting to listen at %s:%d", conf.ListenAddress, conf.ListenPort)

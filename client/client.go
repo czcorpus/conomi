@@ -17,12 +17,12 @@ package client
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
 	"github.com/czcorpus/conomi/general"
+	"github.com/rs/zerolog/log"
 )
 
 type ConomiClientConf struct {
@@ -38,25 +38,29 @@ type ConomiClient struct {
 type conomiReport struct {
 	App      string                `json:"app"`
 	Instance string                `json:"instance"`
+	Tag      string                `json:"tag"`
 	Severity general.SeverityLevel `json:"level"`
 	Subject  string                `json:"subject"`
 	Body     string                `json:"body"`
 	Args     map[string]any        `json:"args"`
 }
 
-func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject string, body string, args map[string]any) error {
+func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject string, body string, opts ...ReportOption) error {
 	reportURL, err := url.JoinPath(cc.conf.Server, "report")
 	if err != nil {
 		return err
 	}
-	payload, err := json.Marshal(conomiReport{
+	report := conomiReport{
 		App:      cc.conf.App,
 		Instance: cc.conf.Instance,
 		Severity: severity,
 		Subject:  subject,
 		Body:     body,
-		Args:     args,
-	})
+	}
+	for _, opt := range opts {
+		opt(&report)
+	}
+	payload, err := json.Marshal(report)
 	if err != nil {
 		return err
 	}
@@ -77,7 +81,7 @@ func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject strin
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(respBody))
+	log.Debug().Str("response", string(respBody)).Msg("conomi post performed")
 	return nil
 }
 

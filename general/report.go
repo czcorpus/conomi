@@ -22,10 +22,17 @@ type Report struct {
 	ID               int            `json:"id"`
 	App              string         `json:"app"`
 	Instance         string         `json:"instance"`
+	Tag              string         `json:"tag"`
 	Severity         SeverityLevel  `json:"severity"`
 	Subject          string         `json:"subject"`
 	Body             string         `json:"body"`
 	Args             map[string]any `json:"args"`
 	Created          time.Time      `json:"created"`
 	ResolvedByUserID int            `json:"resolvedByUserId"`
+}
+
+type ReportCount struct {
+	App, Instance, Tag      string
+	Critical, Warning, Info int
+	Escalated               bool
 }

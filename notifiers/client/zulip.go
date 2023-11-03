@@ -50,11 +50,11 @@ type zulipNotifier struct {
 	tmpl   *template.Template
 }
 
-func (zn *zulipNotifier) ShouldBeSent(report general.Report) bool {
+func (zn *zulipNotifier) ShouldBeSent(report *general.Report) bool {
 	return zn.filter.IsFiltered(report)
 }
 
-func (zn *zulipNotifier) SendNotification(report general.Report) error {
+func (zn *zulipNotifier) SendNotification(report *general.Report) error {
 	params := url.Values{}
 	params.Set("type", zn.args.Type)
 	if zn.args.Type == "stream" {
@@ -69,7 +69,7 @@ func (zn *zulipNotifier) SendNotification(report general.Report) error {
 		&message,
 		templates.TemplateData{
 			NotifierName: zn.name,
-			Report:       report,
+			Report:       *report,
 			Info:         zn.info,
 		},
 	); err != nil {
