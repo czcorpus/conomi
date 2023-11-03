@@ -34,10 +34,14 @@ type ReportsDatabase struct {
 }
 
 func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
-	sql1 := "INSERT INTO conomi_reports (app, instance, level, subject, body, args, created) VALUES (?,?,?,?,?,?,?)"
+	sql1 := "INSERT INTO conomi_reports (app, instance, tag, severity, subject, body, args, created) VALUES (?,?,?,?,?,?,?,?)"
 	instance := sql.NullString{
 		String: report.Instance,
 		Valid:  len(report.Instance) > 0,
+	}
+	tag := sql.NullString{
+		String: report.Tag,
+		Valid:  len(report.Tag) > 0,
 	}
 	var args sql.NullString
 	if report.Args != nil {
@@ -49,7 +53,7 @@ func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 		args.Valid = true
 	}
 	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
-	result, err := rdb.db.Exec(sql1, report.App, instance, report.Severity, report.Subject, report.Body, args, report.Created)
+	result, err := rdb.db.Exec(sql1, report.App, instance, tag, report.Severity, report.Subject, report.Body, args, report.Created)
 	if err != nil {
 		return -1, err
 	}
@@ -61,7 +65,7 @@ func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 }
 
 func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
-	sql1 := "SELECT id, app, instance, level, subject, body, args, created, resolved_by_user_id " +
+	sql1 := "SELECT id, app, instance, tag, severity, subject, body, args, created, resolved_by_user_id " +
 		"FROM conomi_reports " +
 		"WHERE resolved_by_user_id IS NULL"
 	log.Debug().Str("sql", sql1).Msg("going to SELECT conomi_reports WHERE resolved_by_user_id IS NULL")
@@ -72,9 +76,9 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 	ans := make([]*general.Report, 0, 100)
 	for rows.Next() {
 		var resolvedByUserID sql.NullInt32
-		var instance, args sql.NullString
+		var instance, tag, args sql.NullString
 		item := &general.Report{ResolvedByUserID: -1}
-		err := rows.Scan(&item.ID, &item.App, &instance, &item.Severity, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
+		err := rows.Scan(&item.ID, &item.App, &instance, &tag, &item.Severity, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
 		if err != nil {
 			return nil, err
 		}
@@ -85,6 +89,7 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 			item.ResolvedByUserID = int(resolvedByUserID.Int32)
 		}
 		item.Instance = instance.String
+		item.Tag = tag.String
 		if args.Valid {
 			err = json.Unmarshal([]byte(args.String), &item.Args)
 			if err != nil {
@@ -97,15 +102,15 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 }
 
 func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) {
-	sql1 := "SELECT id, app, instance, level, subject, body, args, created, resolved_by_user_id " +
+	sql1 := "SELECT id, app, instance, tag, severity, subject, body, args, created, resolved_by_user_id " +
 		"FROM conomi_reports " +
 		"WHERE id = ? LIMIT 1"
 	log.Debug().Str("sql", sql1).Msgf("going to SELECT conomi_reports WHERE id = %d", reportID)
 	var resolvedByUserID sql.NullInt32
-	var instance, args sql.NullString
+	var instance, tag, args sql.NullString
 	item := &general.Report{ResolvedByUserID: -1}
 	row := rdb.db.QueryRow(sql1, reportID)
-	err := row.Scan(&item.ID, &item.App, &instance, &item.Severity, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
+	err := row.Scan(&item.ID, &item.App, &instance, &tag, &item.Severity, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +121,7 @@ func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) 
 		item.ResolvedByUserID = int(resolvedByUserID.Int32)
 	}
 	item.Instance = instance.String
+	item.Tag = tag.String
 	if args.Valid {
 		err = json.Unmarshal([]byte(args.String), &item.Args)
 		if err != nil {
