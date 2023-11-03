@@ -24,6 +24,7 @@ import (
 
 	"github.com/czcorpus/cnc-gokit/uniresp"
 	"github.com/czcorpus/conomi/engine"
+	"github.com/czcorpus/conomi/escalator"
 	"github.com/czcorpus/conomi/general"
 	"github.com/czcorpus/conomi/notifiers/common"
 	"github.com/gin-gonic/gin"
@@ -33,6 +34,7 @@ type Actions struct {
 	loc *time.Location
 	db  *sql.DB
 	n   []common.Notifier
+	e   *escalator.Escalator
 }
 
 func (a *Actions) PostReport(ctx *gin.Context) {
@@ -55,6 +57,28 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 		return
 	}
 	report.ID = reportID
+	if a.e.Add(&report) {
+		escalationReport := general.Report{
+			App:      report.App,
+			Instance: report.Instance,
+			Tag:      report.Tag,
+			Severity: general.SeverityLevelCritical,
+			Subject:  "Notifications escalated",
+			Body:     "All new reports will have severity CRITICAL",
+		}
+		for _, notifier := range a.n {
+			if notifier.ShouldBeSent(escalationReport) {
+				if err := notifier.SendNotification(escalationReport); err != nil {
+					uniresp.RespondWithErrorJSON(
+						ctx, err, http.StatusInternalServerError)
+					return
+				}
+			}
+		}
+	}
+	if a.e.IsEscalated(&report) {
+		report.Severity = general.SeverityLevelCritical
+	}
 	for _, notifier := range a.n {
 		if notifier.ShouldBeSent(report) {
 			if err := notifier.SendNotification(report); err != nil {
@@ -120,10 +144,11 @@ func (a *Actions) GetReport(ctx *gin.Context) {
 	uniresp.WriteJSONResponse(ctx.Writer, reports)
 }
 
-func NewActions(loc *time.Location, db *sql.DB, n []common.Notifier) *Actions {
+func NewActions(loc *time.Location, db *sql.DB, n []common.Notifier, e *escalator.Escalator) *Actions {
 	return &Actions{
 		loc: loc,
 		db:  db,
 		n:   n,
+		e:   e,
 	}
 }

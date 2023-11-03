@@ -30,3 +30,9 @@ type Report struct {
 	Created          time.Time      `json:"created"`
 	ResolvedByUserID int            `json:"resolvedByUserId"`
 }
+
+type ReportCount struct {
+	App, Instance, Tag      string
+	Critical, Warning, Info int
+	Escalated               bool
+}

@@ -1,7 +1,6 @@
 # :warning: *{{ .Report.Severity.String | upper }} ({{ .Report.App }}{{ if .Report.Instance }}/{{ .Report.Instance }}{{ end }}):* {{ .Report.Subject }}
----
 {{ .Report.Body }}
-{{ if .Info.PublicPath }}
+{{ if and .Info.PublicPath .Report.ID }}
 ```spoiler Report actions
 [Inspect report]({{ .Info.PublicPath }}/report/{{ .Report.ID }})
 [Resolve report]({{ .Info.PublicPath }}/resolve/{{ .Report.ID }}?user_id=1)

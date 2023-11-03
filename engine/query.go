@@ -71,7 +71,7 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 	log.Debug().Str("sql", sql1).Msg("going to SELECT conomi_reports WHERE resolved_by_user_id IS NULL")
 	rows, err := rdb.db.Query(sql1)
 	if err != nil {
-		return []*general.Report{}, err
+		return nil, err
 	}
 	ans := make([]*general.Report, 0, 100)
 	for rows.Next() {
@@ -136,6 +136,32 @@ func (rdb *ReportsDatabase) ResolveReport(reportID int, userID int) error {
 	log.Debug().Str("sql", sql1).Msgf("going to resolve report WHERE id = %d", reportID)
 	_, err := rdb.db.Exec(sql1, userID, reportID)
 	return err
+}
+
+func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
+	sql1 := "select app, instance, tag, " +
+		"sum(case when severity = \"critical\" then 1 else 0 end), " +
+		"sum(case when severity = \"warning\" then 1 else 0 end), " +
+		"sum(case when severity = \"info\" then 1 else 0 end) " +
+		"from conomi_reports where resolved_by_user_id is NULL group by app, instance, tag"
+	log.Debug().Str("sql", sql1).Msg("going to count conomi_reports WHERE resolved_by_user_id IS NULL")
+	rows, err := rdb.db.Query(sql1)
+	if err != nil {
+		return nil, err
+	}
+	ans := make([]*general.ReportCount, 0, 100)
+	for rows.Next() {
+		var instance, tag sql.NullString
+		count := &general.ReportCount{}
+		err := rows.Scan(&count.App, &instance, &tag, &count.Critical, &count.Warning, &count.Info)
+		if err != nil {
+			return nil, err
+		}
+		count.Instance = instance.String
+		count.Tag = tag.String
+		ans = append(ans, count)
+	}
+	return ans, nil
 }
 
 func NewReportsDatabase(db *sql.DB) *ReportsDatabase {
