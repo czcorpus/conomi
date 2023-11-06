@@ -47,9 +47,6 @@ var (
 	gitCommit string
 )
 
-func init() {
-}
-
 func runApiServer(
 	info general.GeneralInfo,
 	conf *cnf.Conf,

@@ -19,8 +19,6 @@ package engine
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
-	"strings"
 
 	"github.com/czcorpus/conomi/general"
 	"github.com/rs/zerolog/log"
@@ -36,25 +34,12 @@ type ReportsDatabase struct {
 
 func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 	sql1 := "INSERT INTO conomi_reports (app, instance, tag, severity, subject, body, args, created) VALUES (?,?,?,?,?,?,?,?)"
-	instance := sql.NullString{
-		String: report.Instance,
-		Valid:  len(report.Instance) > 0,
-	}
-	tag := sql.NullString{
-		String: report.Tag,
-		Valid:  len(report.Tag) > 0,
-	}
-	var args sql.NullString
-	if report.Args != nil {
-		argsJSON, err := json.Marshal(report.Args)
-		if err != nil {
-			return -1, err
-		}
-		args.String = string(argsJSON)
-		args.Valid = true
+	entry, err := NewReportSQL(report)
+	if err != nil {
+		return -1, nil
 	}
 	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
-	result, err := rdb.db.Exec(sql1, report.App, instance, tag, report.Severity, report.Subject, report.Body, args, report.Created)
+	result, err := rdb.db.Exec(sql1, entry.App, entry.Instance, entry.Tag, entry.Severity, entry.Subject, entry.Body, entry.Args, entry.Created)
 	if err != nil {
 		return -1, err
 	}
@@ -76,26 +61,17 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 	}
 	ans := make([]*general.Report, 0, 100)
 	for rows.Next() {
-		var resolvedByUserID sql.NullInt32
-		var instance, tag, args sql.NullString
-		item := &general.Report{ResolvedByUserID: -1}
-		err := rows.Scan(&item.ID, &item.App, &instance, &tag, &item.Severity, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
+		entry := &ReportSQL{}
+		err := rows.Scan(&entry.ID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID)
 		if err != nil {
 			return nil, err
 		}
-		if err := item.Severity.Validate(); err != nil {
+		if err := entry.Severity.Validate(); err != nil {
 			return nil, err
 		}
-		if resolvedByUserID.Valid {
-			item.ResolvedByUserID = int(resolvedByUserID.Int32)
-		}
-		item.Instance = instance.String
-		item.Tag = tag.String
-		if args.Valid {
-			err = json.Unmarshal([]byte(args.String), &item.Args)
-			if err != nil {
-				return nil, err
-			}
+		item, err := entry.Export()
+		if err != nil {
+			return nil, err
 		}
 		ans = append(ans, item)
 	}
@@ -107,29 +83,15 @@ func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) 
 		"FROM conomi_reports " +
 		"WHERE id = ? LIMIT 1"
 	log.Debug().Str("sql", sql1).Msgf("going to SELECT conomi_reports WHERE id = %d", reportID)
-	var resolvedByUserID sql.NullInt32
-	var instance, tag, args sql.NullString
-	item := &general.Report{ResolvedByUserID: -1}
+	entry := &ReportSQL{}
 	row := rdb.db.QueryRow(sql1, reportID)
-	err := row.Scan(&item.ID, &item.App, &instance, &tag, &item.Severity, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
-	if err != nil {
+	if err := row.Scan(&entry.ID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID); err != nil {
 		return nil, err
 	}
-	if err := item.Severity.Validate(); err != nil {
+	if err := entry.Severity.Validate(); err != nil {
 		return nil, err
 	}
-	if resolvedByUserID.Valid {
-		item.ResolvedByUserID = int(resolvedByUserID.Int32)
-	}
-	item.Instance = instance.String
-	item.Tag = tag.String
-	if args.Valid {
-		err = json.Unmarshal([]byte(args.String), &item.Args)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return item, nil
+	return entry.Export()
 }
 
 func (rdb *ReportsDatabase) ResolveReport(reportID int, userID int) (int, error) {
@@ -144,28 +106,13 @@ func (rdb *ReportsDatabase) ResolveReport(reportID int, userID int) (int, error)
 }
 
 func (rdb *ReportsDatabase) ResolveReportsSince(reportID int, userID int) (int, error) {
-	report, err := rdb.SelectReport(reportID)
-	if err != nil {
-		return 0, err
-	}
-	sql1 := "UPDATE conomi_reports SET resolved_by_user_id = ? WHERE "
-	where := []string{"resolved_by_user_id IS NULL", "app = ?", "created >= ?"}
-	params := []any{userID, report.App, report.Created}
-	if len(report.Instance) > 0 {
-		where = append(where, "instance = ?")
-		params = append(params, report.Instance)
-	} else {
-		where = append(where, "instance IS NULL")
-	}
-	if len(report.Tag) > 0 {
-		where = append(where, "tag = ?")
-		params = append(params, report.Tag)
-	} else {
-		where = append(where, "tag IS NULL")
-	}
-	sql1 += strings.Join(where, " AND ")
+	sql1 := "UPDATE conomi_reports AS upd " +
+		"INNER JOIN conomi_reports AS sel " +
+		"ON upd.app = sel.app AND upd.instance <=> sel.instance AND upd.tag <=> sel.tag AND upd.created >= sel.created AND sel.id = ? " +
+		"SET upd.resolved_by_user_id = ? " +
+		"WHERE upd.resolved_by_user_id IS NULL"
 	log.Debug().Str("sql", sql1).Msgf("going to resolve new reports WHERE id = %d", reportID)
-	result, err := rdb.db.Exec(sql1, params...)
+	result, err := rdb.db.Exec(sql1, reportID, userID)
 	if err != nil {
 		return 0, err
 	}
@@ -175,25 +122,24 @@ func (rdb *ReportsDatabase) ResolveReportsSince(reportID int, userID int) (int, 
 
 func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
 	sql1 := "SELECT app, instance, tag, " +
-		"SUM(CASE WHEN severity = \"critical\" THEN 1 ELSE 0 END), " +
-		"SUM(CASE WHEN severity = \"warning\" THEN 1 ELSE 0 END), " +
-		"SUM(CASE WHEN severity = \"info\" THEN 1 ELSE 0 END) " +
+		"SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END), " +
+		"SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END), " +
+		"SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END) " +
 		"FROM conomi_reports WHERE resolved_by_user_id IS NULL GROUP BY app, instance, tag"
 	log.Debug().Str("sql", sql1).Msg("going to count conomi_reports WHERE resolved_by_user_id IS NULL")
-	rows, err := rdb.db.Query(sql1)
+	rows, err := rdb.db.Query(sql1, general.SeverityLevelCritical, general.SeverityLevelWarning, general.SeverityLevelInfo)
 	if err != nil {
 		return nil, err
 	}
 	ans := make([]*general.ReportCount, 0, 100)
 	for rows.Next() {
-		var instance, tag sql.NullString
 		count := &general.ReportCount{}
+		var instance, tag sql.NullString
 		err := rows.Scan(&count.App, &instance, &tag, &count.Critical, &count.Warning, &count.Info)
 		if err != nil {
 			return nil, err
 		}
-		count.Instance = instance.String
-		count.Tag = tag.String
+		count.Instance, count.Tag = instance.String, tag.String
 		ans = append(ans, count)
 	}
 	return ans, nil
