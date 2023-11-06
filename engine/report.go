@@ -37,29 +37,6 @@ type ReportSQL struct {
 	ResolvedByUserID sql.NullInt32
 }
 
-func (rsql *ReportSQL) Import(r general.Report) error {
-	args := sql.NullString{Valid: false, String: ""}
-	if r.Args != nil {
-		value, err := json.Marshal(r.Args)
-		if err != nil {
-			return err
-		}
-		args.Valid = true
-		args.String = string(value)
-	}
-	rsql.ID = r.ID
-	rsql.App = r.App
-	rsql.Instance = sql.NullString{Valid: r.Instance != "", String: r.Instance}
-	rsql.Tag = sql.NullString{Valid: r.Tag != "", String: r.Tag}
-	rsql.Severity = r.Severity
-	rsql.Subject = r.Subject
-	rsql.Body = r.Body
-	rsql.Args = args
-	rsql.Created = r.Created
-	rsql.ResolvedByUserID = sql.NullInt32{Valid: r.ResolvedByUserID != -1, Int32: int32(r.ResolvedByUserID)}
-	return nil
-}
-
 func (r *ReportSQL) Export() (*general.Report, error) {
 	var args map[string]any = nil
 	if r.Args.Valid {
@@ -83,5 +60,29 @@ func (r *ReportSQL) Export() (*general.Report, error) {
 		Args:             args,
 		Created:          r.Created,
 		ResolvedByUserID: resolvedByUserID,
+	}, nil
+}
+
+func NewReportSQL(r general.Report) (*ReportSQL, error) {
+	args := sql.NullString{Valid: false, String: ""}
+	if r.Args != nil {
+		value, err := json.Marshal(r.Args)
+		if err != nil {
+			return nil, err
+		}
+		args.Valid = true
+		args.String = string(value)
+	}
+	return &ReportSQL{
+		ID:               r.ID,
+		App:              r.App,
+		Instance:         sql.NullString{Valid: r.Instance != "", String: r.Instance},
+		Tag:              sql.NullString{Valid: r.Tag != "", String: r.Tag},
+		Severity:         r.Severity,
+		Subject:          r.Subject,
+		Body:             r.Body,
+		Args:             args,
+		Created:          r.Created,
+		ResolvedByUserID: sql.NullInt32{Valid: r.ResolvedByUserID != -1, Int32: int32(r.ResolvedByUserID)},
 	}, nil
 }

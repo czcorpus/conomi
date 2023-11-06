@@ -34,8 +34,8 @@ type ReportsDatabase struct {
 
 func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 	sql1 := "INSERT INTO conomi_reports (app, instance, tag, severity, subject, body, args, created) VALUES (?,?,?,?,?,?,?,?)"
-	entry := ReportSQL{}
-	if err := entry.Import(report); err != nil {
+	entry, err := NewReportSQL(report)
+	if err != nil {
 		return -1, nil
 	}
 	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
