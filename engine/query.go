@@ -19,7 +19,6 @@ package engine
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"strings"
 
 	"github.com/czcorpus/conomi/general"
@@ -36,25 +35,12 @@ type ReportsDatabase struct {
 
 func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 	sql1 := "INSERT INTO conomi_reports (app, instance, tag, severity, subject, body, args, created) VALUES (?,?,?,?,?,?,?,?)"
-	instance := sql.NullString{
-		String: report.Instance,
-		Valid:  len(report.Instance) > 0,
-	}
-	tag := sql.NullString{
-		String: report.Tag,
-		Valid:  len(report.Tag) > 0,
-	}
-	var args sql.NullString
-	if report.Args != nil {
-		argsJSON, err := json.Marshal(report.Args)
-		if err != nil {
-			return -1, err
-		}
-		args.String = string(argsJSON)
-		args.Valid = true
+	entry := ReportSQL{}
+	if err := entry.Import(report); err != nil {
+		return -1, nil
 	}
 	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
-	result, err := rdb.db.Exec(sql1, report.App, instance, tag, report.Severity, report.Subject, report.Body, args, report.Created)
+	result, err := rdb.db.Exec(sql1, entry.App, entry.Instance, entry.Tag, entry.Severity, entry.Subject, entry.Body, entry.Args, entry.Created)
 	if err != nil {
 		return -1, err
 	}
@@ -76,26 +62,17 @@ func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
 	}
 	ans := make([]*general.Report, 0, 100)
 	for rows.Next() {
-		var resolvedByUserID sql.NullInt32
-		var instance, tag, args sql.NullString
-		item := &general.Report{ResolvedByUserID: -1}
-		err := rows.Scan(&item.ID, &item.App, &instance, &tag, &item.Severity, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
+		entry := &ReportSQL{}
+		err := rows.Scan(&entry.ID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID)
 		if err != nil {
 			return nil, err
 		}
-		if err := item.Severity.Validate(); err != nil {
+		if err := entry.Severity.Validate(); err != nil {
 			return nil, err
 		}
-		if resolvedByUserID.Valid {
-			item.ResolvedByUserID = int(resolvedByUserID.Int32)
-		}
-		item.Instance = instance.String
-		item.Tag = tag.String
-		if args.Valid {
-			err = json.Unmarshal([]byte(args.String), &item.Args)
-			if err != nil {
-				return nil, err
-			}
+		item, err := entry.Export()
+		if err != nil {
+			return nil, err
 		}
 		ans = append(ans, item)
 	}
@@ -107,29 +84,15 @@ func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) 
 		"FROM conomi_reports " +
 		"WHERE id = ? LIMIT 1"
 	log.Debug().Str("sql", sql1).Msgf("going to SELECT conomi_reports WHERE id = %d", reportID)
-	var resolvedByUserID sql.NullInt32
-	var instance, tag, args sql.NullString
-	item := &general.Report{ResolvedByUserID: -1}
+	entry := &ReportSQL{}
 	row := rdb.db.QueryRow(sql1, reportID)
-	err := row.Scan(&item.ID, &item.App, &instance, &tag, &item.Severity, &item.Subject, &item.Body, &args, &item.Created, &resolvedByUserID)
-	if err != nil {
+	if err := row.Scan(&entry.ID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID); err != nil {
 		return nil, err
 	}
-	if err := item.Severity.Validate(); err != nil {
+	if err := entry.Severity.Validate(); err != nil {
 		return nil, err
 	}
-	if resolvedByUserID.Valid {
-		item.ResolvedByUserID = int(resolvedByUserID.Int32)
-	}
-	item.Instance = instance.String
-	item.Tag = tag.String
-	if args.Valid {
-		err = json.Unmarshal([]byte(args.String), &item.Args)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return item, nil
+	return entry.Export()
 }
 
 func (rdb *ReportsDatabase) ResolveReport(reportID int, userID int) (int, error) {

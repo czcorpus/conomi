@@ -16,7 +16,9 @@
 
 package general
 
-import "time"
+import (
+	"time"
+)
 
 type Report struct {
 	ID               int            `json:"id"`
@@ -28,7 +30,7 @@ type Report struct {
 	Body             string         `json:"body"`
 	Args             map[string]any `json:"args"`
 	Created          time.Time      `json:"created"`
-	ResolvedByUserID int            `json:"resolvedByUserId"`
+	ResolvedByUserID int            `json:"resolvedByUserId"` // for empty user we use value -1
 }
 
 type ReportCount struct {
