@@ -122,12 +122,12 @@ func (rdb *ReportsDatabase) ResolveReportsSince(reportID int, userID int) (int, 
 
 func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
 	sql1 := "SELECT app, instance, tag, " +
-		"SUM(CASE WHEN severity = \"critical\" THEN 1 ELSE 0 END), " +
-		"SUM(CASE WHEN severity = \"warning\" THEN 1 ELSE 0 END), " +
-		"SUM(CASE WHEN severity = \"info\" THEN 1 ELSE 0 END) " +
+		"SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END), " +
+		"SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END), " +
+		"SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END) " +
 		"FROM conomi_reports WHERE resolved_by_user_id IS NULL GROUP BY app, instance, tag"
 	log.Debug().Str("sql", sql1).Msg("going to count conomi_reports WHERE resolved_by_user_id IS NULL")
-	rows, err := rdb.db.Query(sql1)
+	rows, err := rdb.db.Query(sql1, general.SeverityLevelCritical, general.SeverityLevelWarning, general.SeverityLevelInfo)
 	if err != nil {
 		return nil, err
 	}
