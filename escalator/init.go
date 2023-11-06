@@ -49,6 +49,8 @@ func (e *Escalator) HandleReport(report *general.Report) error {
 		count = &general.ReportCount{App: report.App, Instance: report.Instance, Tag: report.Tag}
 		e.counts[key] = count
 	}
+
+	// increase severity count
 	switch report.Severity {
 	case general.SeverityLevelCritical:
 		count.Critical += 1
@@ -58,6 +60,7 @@ func (e *Escalator) HandleReport(report *general.Report) error {
 		count.Info += 1
 	}
 
+	// check escalation
 	lastEscalated := count.Escalated
 	count.Escalated = count.Critical > 0 || count.Warning > escalateWarningCount
 	if !lastEscalated && count.Escalated {
@@ -67,12 +70,14 @@ func (e *Escalator) HandleReport(report *general.Report) error {
 			Tag:      report.Tag,
 			Severity: general.SeverityLevelCritical,
 			Subject:  "Service escalated!",
-			Body:     "Subsequent reports will be escalated to CRITICAL",
+			Body:     "Subsequent notifications will be set to CRITICAL",
 		})
 		if err != nil {
 			return err
 		}
 	}
+
+	// change report severity to critical if escalated
 	if count.Escalated {
 		report.Severity = general.SeverityLevelCritical
 	}

@@ -24,6 +24,7 @@ import (
 	"github.com/czcorpus/conomi/general"
 )
 
+// structure for simpler record data transformation between sql and go
 type ReportSQL struct {
 	ID               int
 	App              string
