@@ -19,7 +19,6 @@ package engine
 import (
 	"context"
 	"database/sql"
-	"strings"
 
 	"github.com/czcorpus/conomi/general"
 	"github.com/rs/zerolog/log"
@@ -107,28 +106,13 @@ func (rdb *ReportsDatabase) ResolveReport(reportID int, userID int) (int, error)
 }
 
 func (rdb *ReportsDatabase) ResolveReportsSince(reportID int, userID int) (int, error) {
-	report, err := rdb.SelectReport(reportID)
-	if err != nil {
-		return 0, err
-	}
-	sql1 := "UPDATE conomi_reports SET resolved_by_user_id = ? WHERE "
-	where := []string{"resolved_by_user_id IS NULL", "app = ?", "created >= ?"}
-	params := []any{userID, report.App, report.Created}
-	if len(report.Instance) > 0 {
-		where = append(where, "instance = ?")
-		params = append(params, report.Instance)
-	} else {
-		where = append(where, "instance IS NULL")
-	}
-	if len(report.Tag) > 0 {
-		where = append(where, "tag = ?")
-		params = append(params, report.Tag)
-	} else {
-		where = append(where, "tag IS NULL")
-	}
-	sql1 += strings.Join(where, " AND ")
+	sql1 := "UPDATE conomi_reports AS upd " +
+		"INNER JOIN conomi_reports AS sel " +
+		"ON upd.app = sel.app AND upd.instance <=> sel.instance AND upd.tag <=> sel.tag AND upd.created >= sel.created AND sel.id = ? " +
+		"SET upd.resolved_by_user_id = ? " +
+		"WHERE upd.resolved_by_user_id IS NULL"
 	log.Debug().Str("sql", sql1).Msgf("going to resolve new reports WHERE id = %d", reportID)
-	result, err := rdb.db.Exec(sql1, params...)
+	result, err := rdb.db.Exec(sql1, reportID, userID)
 	if err != nil {
 		return 0, err
 	}
@@ -149,14 +133,13 @@ func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
 	}
 	ans := make([]*general.ReportCount, 0, 100)
 	for rows.Next() {
-		var instance, tag sql.NullString
 		count := &general.ReportCount{}
+		var instance, tag sql.NullString
 		err := rows.Scan(&count.App, &instance, &tag, &count.Critical, &count.Warning, &count.Info)
 		if err != nil {
 			return nil, err
 		}
-		count.Instance = instance.String
-		count.Tag = tag.String
+		count.Instance, count.Tag = instance.String, tag.String
 		ans = append(ans, count)
 	}
 	return ans, nil
