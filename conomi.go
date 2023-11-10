@@ -95,14 +95,12 @@ func runApiServer(
 		syscallChan <- syscall.SIGTERM
 	}()
 
-	select {
-	case <-exitEvent:
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		err := srv.Shutdown(ctx)
-		if err != nil {
-			log.Info().Err(err).Msg("Shutdown request error")
-		}
+	<-exitEvent
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err = srv.Shutdown(ctx)
+	if err != nil {
+		log.Info().Err(err).Msg("Shutdown request error")
 	}
 	return nil
 }
@@ -123,7 +121,10 @@ func main() {
 	flag.Parse()
 	action := flag.Arg(0)
 	if action == "version" {
-		fmt.Printf("todo %s\nbuild date: %s\nlast commit: %s\n", build.Version, build.BuildDate, build.GitCommit)
+		fmt.Printf(
+			"Conomi - CNC Notification Middleware\n%s\nbuild date: %s\nlast commit: %s\n",
+			build.Version, build.BuildDate, build.GitCommit,
+		)
 		return
 	}
 	conf := cnf.LoadConfig(flag.Arg(1))
@@ -140,7 +141,7 @@ func main() {
 	} else {
 		logging.SetupLogging(conf.LogFile, conf.LogLevel)
 	}
-	log.Info().Msg("Starting TODO")
+	log.Info().Msg("Starting Conomi")
 	cnf.ValidateAndDefaults(conf)
 	syscallChan := make(chan os.Signal, 1)
 	signal.Notify(syscallChan, os.Interrupt)
@@ -148,11 +149,9 @@ func main() {
 	exitEvent := make(chan os.Signal)
 
 	go func() {
-		select {
-		case evt := <-syscallChan:
-			exitEvent <- evt
-			close(exitEvent)
-		}
+		evt := <-syscallChan
+		exitEvent <- evt
+		close(exitEvent)
 	}()
 
 	switch action {
