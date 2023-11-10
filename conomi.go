@@ -111,10 +111,10 @@ func main() {
 		BuildDate: buildDate,
 		GitCommit: gitCommit,
 	}
-
+	createTables := flag.Bool("create-tables", false, "Force creating db tables (requires proper permissions)")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "TODO - A specialized corpus querying server\n\n")
-		fmt.Fprintf(os.Stderr, "Usage:\n\t%s [options] server [config.json]\n\t", filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stderr, "Conomi - CNC Notification Middleware\n\n")
+		fmt.Fprintf(os.Stderr, "Usage:\n\t%s [options] start [config.json]\n\t", filepath.Base(os.Args[0]))
 		fmt.Fprintf(os.Stderr, "%s [options] version\n", filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 	}
@@ -156,7 +156,7 @@ func main() {
 
 	switch action {
 	case "start":
-		sqlDB, err := engine.Open(conf.DB)
+		sqlDB, err := engine.Open(conf.DB, *createTables)
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to open database connection")
 		}

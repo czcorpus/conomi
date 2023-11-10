@@ -32,7 +32,7 @@ type DBConf struct {
 	PoolSize int    `json:"poolSize"`
 }
 
-func Open(conf *DBConf) (*sql.DB, error) {
+func Open(conf *DBConf, createTables bool) (*sql.DB, error) {
 	mconf := mysql.NewConfig()
 	mconf.Net = "tcp"
 	mconf.Addr = conf.Host
@@ -46,9 +46,11 @@ func Open(conf *DBConf) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = initDatabase(db)
-	if err != nil {
-		return nil, err
+	if createTables {
+		err = initDatabase(db)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return db, nil
 }
