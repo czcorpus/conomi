@@ -17,6 +17,7 @@
         {
             "type": "email",
             "name": "EmailNotifier1",
+            "tplDirPath": "/path/to/email/templates/templates",
             "args": {
                 "sender": "someone@somewhere.cz",
                 "recipients": ["someone@somewhere.cz"],
@@ -29,6 +30,7 @@
         {
             "type": "zulip",
             "name": "ZulipNotifier1",
+            "tplDirPath": "/path/to/zulip/templates",
             "args": {
                 "server": "https://zulip.server.com",
                 "sender": "someone@somewhere.cz",

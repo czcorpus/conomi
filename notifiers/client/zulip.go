@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
@@ -108,11 +109,10 @@ func (zn *zulipNotifier) SendNotification(report *general.Report) error {
 }
 
 func NewZulipNotifier(
-	name string,
+	conf *common.NotifierConf,
+	loc *time.Location,
 	info general.GeneralInfo,
 	args *ZulipNotifierArgs,
-	filter common.FilterConf,
-	loc *time.Location,
 ) (common.Notifier, error) {
 	switch args.Type {
 	case "direct":
@@ -129,16 +129,19 @@ func NewZulipNotifier(
 	default:
 		return nil, fmt.Errorf("unknown zulip type `%s`, use `direct` or `stream`", args.Type)
 	}
-	tmpl, err := templates.GetTemplate("zulip.gtpl")
+	tmpl, err := templates.GetTemplate(filepath.Join(conf.TplDirPath, "zulip.gtpl"))
 	if err != nil {
 		return nil, err
 	}
-	log.Info().Msgf("creating zulip notifier `%s` of type `%s` with recipient(s) %v > %s", name, args.Type, args.Recipients, args.Topic)
+	log.Info().Msgf(
+		"creating zulip notifier `%s` of type `%s` with recipient(s) %v > %s",
+		conf.Name, args.Type, args.Recipients, args.Topic,
+	)
 	notifier := &zulipNotifier{
-		name:   name,
+		name:   conf.Name,
 		info:   info,
 		args:   args,
-		filter: filter,
+		filter: conf.Filter,
 		loc:    loc,
 		tmpl:   tmpl,
 	}

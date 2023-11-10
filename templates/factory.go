@@ -17,7 +17,7 @@
 package templates
 
 import (
-	"fmt"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -30,10 +30,10 @@ type TemplateData struct {
 	Report       general.Report
 }
 
-func GetTemplate(name string) (*template.Template, error) {
+func GetTemplate(absPath string) (*template.Template, error) {
 	templateFunc := template.FuncMap{
 		"upper": strings.ToUpper,
 		"lower": strings.ToLower,
 	}
-	return template.New(name).Funcs(templateFunc).ParseFiles(fmt.Sprintf("templates/%s", name))
+	return template.New(filepath.Base(absPath)).Funcs(templateFunc).ParseFiles(absPath)
 }
