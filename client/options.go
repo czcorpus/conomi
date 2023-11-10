@@ -18,7 +18,7 @@ type ReportOption func(c *conomiReport)
 
 func WithTag(tag string) ReportOption {
 	return func(c *conomiReport) {
-		c.Tag = tag
+		c.SourceID.Tag = tag
 	}
 }
 

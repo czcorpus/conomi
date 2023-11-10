@@ -2,7 +2,7 @@
 {{ .Report.Body }}
 {{ if and .Info.PublicPath .Report.ID }}
 ```spoiler Report actions
-[Inspect report]({{ .Info.PublicPath }}/report/{{ .Report.ID }})
+[Inspect report]({{ .Info.PublicPath }}/detail/{{ .Report.ID }})
 [Resolve report]({{ .Info.PublicPath }}/resolve-since/{{ .Report.ID }}?user_id=1)
 ```
 {{ end }}

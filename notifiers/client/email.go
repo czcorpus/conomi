@@ -48,7 +48,7 @@ func (en *emailNotifier) SendNotification(report *general.Report) error {
 	var message strings.Builder
 	if err := en.tmpl.Execute(
 		&message,
-		templates.TemplateData{
+		templates.NotificationTemplateData{
 			NotifierName: en.name,
 			Report:       *report,
 			Info:         en.info,

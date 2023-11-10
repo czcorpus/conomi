@@ -1,7 +1,7 @@
 {{ .Report.Body }}<br/>
 <br/>
 {{ if and .Info.PublicPath .Report.ID }}
-<a href="{{ .Info.PublicPath }}/report/{{ .Report.ID }}">Inspect report</a><br/>
+<a href="{{ .Info.PublicPath }}/detail/{{ .Report.ID }}">Inspect report</a><br/>
 <a href="{{ .Info.PublicPath }}/resolve-since/{{ .Report.ID }}?user_id=1">Resolve report</a><br/>
 <br/>
 {{ end }}

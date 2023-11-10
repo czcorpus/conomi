@@ -24,7 +24,7 @@ import (
 	"github.com/czcorpus/conomi/general"
 )
 
-type TemplateData struct {
+type NotificationTemplateData struct {
 	NotifierName string
 	Info         general.GeneralInfo
 	Report       general.Report

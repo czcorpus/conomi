@@ -1,0 +1,42 @@
+<overview>
+    <div if={ state.error != null }>Error: { state.error.response ? JSON.stringify(state.error.response.data) : JSON.stringify(state.error) }</div>
+    <div if={ state.counts == null && state.error == null }>Loading...</div>
+    <div if={ state.counts != null && state.error == null }>
+        <table>
+            <thead>
+                <tr>
+                    <th>Source</th>
+                    <th>Critical</th>
+                    <th>Warning</th>
+                    <th>Info</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr each={ count in state.counts }>
+                    <td>
+                        <a href={`?app=${count.sourceId.app}&instance=${count.sourceId.instance}&tag=${count.sourceId.tag}#list`}>
+                            { count.sourceId.app } / { count.sourceId.instance } # { count.sourceId.tag }
+                        </a>
+                    </td>
+                    <td class="critical">{ count.critical }</td>
+                    <td class="warning">{ count.warning }</td>
+                    <td class="info">{ count.info }</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        import axios from 'axios';
+
+        export default {
+            onBeforeMount(props, state) {
+                this.state.counts = null;
+                this.state.error = null;
+                axios.get("/counts")
+                    .then(resp => this.update({counts: resp.data}))
+                    .catch(error => this.update({error}))
+            },
+        }
+    </script>
+</overview>

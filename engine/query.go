@@ -19,6 +19,7 @@ package engine
 import (
 	"context"
 	"database/sql"
+	"strings"
 
 	"github.com/czcorpus/conomi/general"
 	"github.com/rs/zerolog/log"
@@ -50,12 +51,28 @@ func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
 	return int(reportID), nil
 }
 
-func (rdb *ReportsDatabase) ListReports() ([]*general.Report, error) {
+func (rdb *ReportsDatabase) ListReports(app, instance, tag string) ([]*general.Report, error) {
+	whereClause := make([]string, 0, 4)
+	whereValues := make([]any, 0, 3)
+	whereClause = append(whereClause, "resolved_by_user_id IS NULL")
+	if app != "" {
+		whereClause = append(whereClause, "app = ?")
+		whereValues = append(whereValues, app)
+	}
+	if instance != "" {
+		whereClause = append(whereClause, "instance = ?")
+		whereValues = append(whereValues, instance)
+	}
+	if tag != "" {
+		whereClause = append(whereClause, "tag = ?")
+		whereValues = append(whereValues, tag)
+	}
 	sql1 := "SELECT id, app, instance, tag, severity, subject, body, args, created, resolved_by_user_id " +
 		"FROM conomi_reports " +
-		"WHERE resolved_by_user_id IS NULL"
+		"WHERE " + strings.Join(whereClause, " AND ") + " " +
+		"ORDER BY created DESC"
 	log.Debug().Str("sql", sql1).Msg("going to SELECT conomi_reports WHERE resolved_by_user_id IS NULL")
-	rows, err := rdb.db.Query(sql1)
+	rows, err := rdb.db.Query(sql1, whereValues...)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +142,8 @@ func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
 		"SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END), " +
 		"SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END), " +
 		"SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END) " +
-		"FROM conomi_reports WHERE resolved_by_user_id IS NULL GROUP BY app, instance, tag"
+		"FROM conomi_reports WHERE resolved_by_user_id IS NULL " +
+		"GROUP BY app, instance, tag ORDER BY app, instance, tag"
 	log.Debug().Str("sql", sql1).Msg("going to count conomi_reports WHERE resolved_by_user_id IS NULL")
 	rows, err := rdb.db.Query(sql1, general.SeverityLevelCritical, general.SeverityLevelWarning, general.SeverityLevelInfo)
 	if err != nil {
@@ -135,12 +153,39 @@ func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
 	for rows.Next() {
 		count := &general.ReportCount{}
 		var instance, tag sql.NullString
-		err := rows.Scan(&count.App, &instance, &tag, &count.Critical, &count.Warning, &count.Info)
+		err := rows.Scan(&count.SourceID.App, &instance, &tag, &count.Critical, &count.Warning, &count.Info)
 		if err != nil {
 			return nil, err
 		}
-		count.Instance, count.Tag = instance.String, tag.String
+		count.SourceID.Instance, count.SourceID.Tag = instance.String, tag.String
 		ans = append(ans, count)
+	}
+	return ans, nil
+}
+
+func (rdb *ReportsDatabase) GetSources() ([]*general.SourceID, error) {
+	sql1 := "SELECT DISTINCT app, instance, tag FROM conomi_reports WHERE resolved_by_user_id IS NULL ORDER BY app, instance, tag"
+	log.Debug().Str("sql", sql1).Msg("going to get available filters")
+	rows, err := rdb.db.Query(sql1)
+	if err != nil {
+		return nil, err
+	}
+	if err != nil {
+		return nil, err
+	}
+	ans := make([]*general.SourceID, 0, 100)
+	for rows.Next() {
+		var app string
+		var instance, tag sql.NullString
+		err := rows.Scan(&app, &instance, &tag)
+		if err != nil {
+			return nil, err
+		}
+		ans = append(ans, &general.SourceID{
+			App:      app,
+			Instance: instance.String,
+			Tag:      tag.String,
+		})
 	}
 	return ans, nil
 }

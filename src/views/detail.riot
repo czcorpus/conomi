@@ -1,0 +1,63 @@
+<detail>
+    <div if={ state.error != null }>Error: { state.error.response ? JSON.stringify(state.error.response.data) : JSON.stringify(state.error)}</div>
+    <div if={ state.report == null && state.error == null }>Loading...</div>
+    <div if={ state.report != null && state.error == null }>
+        <table>
+            <caption>Identification:</caption>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>App</th>
+                    <th>Instance</th>
+                    <th>Tag</th>
+                    <th>Created</th>
+                    <th>Severity</th>
+                    <th>Resolved by</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{ state.report.id }</td>
+                    <td>{ state.report.sourceId.app }</td>
+                    <td>{ state.report.sourceId.instance }</td>
+                    <td>{ state.report.sourceId.tag }</td>
+                    <td>{ state.report.created }</td>
+                    <td>{ state.report.severity }</td>
+                    <td>{ state.report.resolvedByUserId }</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table>
+            <caption>Message:</caption>
+            <tbody>
+                <tr>
+                    <td>Subject</td>
+                    <td>{ state.report.subject }</td>
+                </tr>
+                <tr>
+                    <td>Body</td>
+                    <td>{ state.report.body }</td>
+                </tr>
+                <tr>
+                    <td>Args</td>
+                    <td>{ state.report.args }</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        import axios from 'axios';
+
+        export default {
+            onBeforeMount(props, state) {
+                this.state.report = null;
+                this.state.error = null;
+                axios.get(`/report/${props.reportId}`)
+                    .then(resp => this.update({report: resp.data}))
+                    .catch(error => this.update({error}))
+            },
+        }
+    </script>
+</detail>
