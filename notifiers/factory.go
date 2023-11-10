@@ -41,7 +41,7 @@ func clientsFactory(
 			if err != nil {
 				return nil, fmt.Errorf("invalid email notifier conf: %s", err)
 			}
-			clients[i], err = client.NewEmailNotifier(conf.Name, info, &emailConf, conf.Filter, loc)
+			clients[i], err = client.NewEmailNotifier(&conf, loc, info, &emailConf)
 			if err != nil {
 				return nil, err
 			}
@@ -51,7 +51,7 @@ func clientsFactory(
 			if err != nil {
 				return nil, fmt.Errorf("invalid zulip notifier conf: %s", err)
 			}
-			clients[i], err = client.NewZulipNotifier(conf.Name, info, &zulipConf, conf.Filter, loc)
+			clients[i], err = client.NewZulipNotifier(&conf, loc, info, &zulipConf)
 			if err != nil {
 				return nil, err
 			}

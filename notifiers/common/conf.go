@@ -21,10 +21,11 @@ import (
 )
 
 type NotifierConf struct {
-	Type   string         `json:"type"`
-	Name   string         `json:"name"`
-	Args   map[string]any `json:"args"`
-	Filter FilterConf     `json:"filter"`
+	Type       string         `json:"type"`
+	Name       string         `json:"name"`
+	Args       map[string]any `json:"args"`
+	Filter     FilterConf     `json:"filter"`
+	TplDirPath string         `json:"tplDirPath"`
 }
 
 type FilterConf struct {

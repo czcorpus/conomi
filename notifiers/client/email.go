@@ -19,6 +19,7 @@ package client
 import (
 	"fmt"
 	goMail "net/mail"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
@@ -72,11 +73,10 @@ func (en *emailNotifier) SendNotification(report *general.Report) error {
 }
 
 func NewEmailNotifier(
-	name string,
+	conf *common.NotifierConf,
+	loc *time.Location,
 	info general.GeneralInfo,
 	args *mail.NotificationConf,
-	filter common.FilterConf,
-	loc *time.Location,
 ) (common.Notifier, error) {
 	if args.Sender == "" {
 		return nil, fmt.Errorf("e-mail sender not set")
@@ -87,16 +87,16 @@ func NewEmailNotifier(
 			return nil, fmt.Errorf("incorrect e-mail address %s: %s", addr, err)
 		}
 	}
-	tmpl, err := templates.GetTemplate("email.gtpl")
+	tmpl, err := templates.GetTemplate(filepath.Join(conf.TplDirPath, "email.gtpl"))
 	if err != nil {
 		return nil, err
 	}
-	log.Info().Msgf("creating e-mail notifier `%s` with recipient(s) %v", name, args.Recipients)
+	log.Info().Msgf("creating e-mail notifier `%s` with recipient(s) %v", conf.Name, args.Recipients)
 	notifier := &emailNotifier{
-		name:   name,
+		name:   conf.Name,
 		info:   info,
 		args:   args,
-		filter: filter,
+		filter: conf.Filter,
 		loc:    loc,
 		tmpl:   tmpl,
 	}
