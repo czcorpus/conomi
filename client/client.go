@@ -39,7 +39,7 @@ type conomiReport struct {
 	App      string                `json:"app"`
 	Instance string                `json:"instance"`
 	Tag      string                `json:"tag"`
-	Severity general.SeverityLevel `json:"level"`
+	Severity general.SeverityLevel `json:"severity"`
 	Subject  string                `json:"subject"`
 	Body     string                `json:"body"`
 	Args     map[string]any        `json:"args"`
