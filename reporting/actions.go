@@ -71,8 +71,11 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 }
 
 func (a *Actions) GetReports(ctx *gin.Context) {
+	app := ctx.Request.URL.Query().Get("app")
+	instance := ctx.Request.URL.Query().Get("instance")
+	tag := ctx.Request.URL.Query().Get("tag")
 	rdb := engine.NewReportsDatabase(a.db)
-	reports, err := rdb.ListReports()
+	reports, err := rdb.ListReports(app, instance, tag)
 	if err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)
@@ -150,13 +153,50 @@ func (a *Actions) GetReport(ctx *gin.Context) {
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
-	reports, err := rdb.SelectReport(reportID)
+	report, err := rdb.SelectReport(reportID)
 	if err != nil {
-		uniresp.RespondWithErrorJSON(
-			ctx, err, http.StatusInternalServerError)
+		if err == sql.ErrNoRows {
+			uniresp.RespondWithErrorJSON(
+				ctx, err, http.StatusNotFound)
+		} else {
+			uniresp.RespondWithErrorJSON(
+				ctx, err, http.StatusInternalServerError)
+		}
 		return
 	}
-	uniresp.WriteJSONResponse(ctx.Writer, reports)
+	uniresp.WriteJSONResponse(ctx.Writer, report)
+}
+
+func (a *Actions) GetSources(ctx *gin.Context) {
+	rdb := engine.NewReportsDatabase(a.db)
+	filters, err := rdb.GetSources()
+	if err != nil {
+		if err == sql.ErrNoRows {
+			uniresp.RespondWithErrorJSON(
+				ctx, err, http.StatusNotFound)
+		} else {
+			uniresp.RespondWithErrorJSON(
+				ctx, err, http.StatusInternalServerError)
+		}
+		return
+	}
+	uniresp.WriteJSONResponse(ctx.Writer, filters)
+}
+
+func (a *Actions) GetReportCounts(ctx *gin.Context) {
+	rdb := engine.NewReportsDatabase(a.db)
+	counts, err := rdb.GetReportCounts()
+	if err != nil {
+		if err == sql.ErrNoRows {
+			uniresp.RespondWithErrorJSON(
+				ctx, err, http.StatusNotFound)
+		} else {
+			uniresp.RespondWithErrorJSON(
+				ctx, err, http.StatusInternalServerError)
+		}
+		return
+	}
+	uniresp.WriteJSONResponse(ctx.Writer, counts)
 }
 
 func NewActions(loc *time.Location, db *sql.DB, n *notifiers.Notifiers, e *escalator.Escalator) *Actions {

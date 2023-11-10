@@ -33,20 +33,20 @@ type Escalator struct {
 	notifiers *notifiers.Notifiers
 }
 
-func (e *Escalator) makeKey(app, instance, tag string) string {
-	return fmt.Sprintf("%s:%s:%s", app, instance, tag)
+func (e *Escalator) makeKey(sourceID general.SourceID) string {
+	return fmt.Sprintf("%s:%s:%s", sourceID.App, sourceID.Instance, sourceID.Tag)
 }
 
 func (e *Escalator) Set(count *general.ReportCount) {
-	key := e.makeKey(count.App, count.Instance, count.Tag)
+	key := e.makeKey(count.SourceID)
 	e.counts[key] = count
 }
 
 func (e *Escalator) HandleReport(report *general.Report) error {
-	key := e.makeKey(report.App, report.Instance, report.Tag)
+	key := e.makeKey(report.SourceID)
 	count, ok := e.counts[key]
 	if !ok {
-		count = &general.ReportCount{App: report.App, Instance: report.Instance, Tag: report.Tag}
+		count = &general.ReportCount{SourceID: report.SourceID}
 		e.counts[key] = count
 	}
 
@@ -65,9 +65,7 @@ func (e *Escalator) HandleReport(report *general.Report) error {
 	count.Escalated = count.Critical > 0 || count.Warning > escalateWarningCount
 	if !lastEscalated && count.Escalated {
 		err := e.notifiers.SendNotifications(&general.Report{
-			App:      report.App,
-			Instance: report.Instance,
-			Tag:      report.Tag,
+			SourceID: report.SourceID,
 			Severity: general.SeverityLevelCritical,
 			Subject:  "Service escalated!",
 			Body:     "Subsequent notifications will be set to CRITICAL",

@@ -68,7 +68,7 @@ func (zn *zulipNotifier) SendNotification(report *general.Report) error {
 	var message strings.Builder
 	if err := zn.tmpl.Execute(
 		&message,
-		templates.TemplateData{
+		templates.NotificationTemplateData{
 			NotifierName: zn.name,
 			Report:       *report,
 			Info:         zn.info,

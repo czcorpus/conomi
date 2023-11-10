@@ -36,13 +36,11 @@ type ConomiClient struct {
 }
 
 type conomiReport struct {
-	App      string                `json:"app"`
-	Instance string                `json:"instance"`
-	Tag      string                `json:"tag"`
-	Severity general.SeverityLevel `json:"severity"`
-	Subject  string                `json:"subject"`
-	Body     string                `json:"body"`
-	Args     map[string]any        `json:"args"`
+	general.SourceID `json:"sourceId"`
+	Severity         general.SeverityLevel `json:"severity"`
+	Subject          string                `json:"subject"`
+	Body             string                `json:"body"`
+	Args             map[string]any        `json:"args"`
 }
 
 func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject string, body string, opts ...ReportOption) error {
@@ -51,8 +49,10 @@ func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject strin
 		return err
 	}
 	report := conomiReport{
-		App:      cc.conf.App,
-		Instance: cc.conf.Instance,
+		SourceID: general.SourceID{
+			App:      cc.conf.App,
+			Instance: cc.conf.Instance,
+		},
 		Severity: severity,
 		Subject:  subject,
 		Body:     body,

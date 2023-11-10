@@ -51,10 +51,12 @@ func (r *ReportSQL) Export() (*general.Report, error) {
 		resolvedByUserID = int(r.ResolvedByUserID.Int32)
 	}
 	return &general.Report{
+		SourceID: general.SourceID{
+			App:      r.App,
+			Instance: r.Instance.String,
+			Tag:      r.Tag.String,
+		},
 		ID:               r.ID,
-		App:              r.App,
-		Instance:         r.Instance.String,
-		Tag:              r.Tag.String,
 		Severity:         r.Severity,
 		Subject:          r.Subject,
 		Body:             r.Body,

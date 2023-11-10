@@ -20,11 +20,15 @@ import (
 	"time"
 )
 
+type SourceID struct {
+	App      string `json:"app"`
+	Instance string `json:"instance"`
+	Tag      string `json:"tag"`
+}
+
 type Report struct {
+	SourceID         `json:"sourceId"`
 	ID               int            `json:"id"`
-	App              string         `json:"app"`
-	Instance         string         `json:"instance"`
-	Tag              string         `json:"tag"`
 	Severity         SeverityLevel  `json:"severity"`
 	Subject          string         `json:"subject"`
 	Body             string         `json:"body"`
@@ -34,7 +38,9 @@ type Report struct {
 }
 
 type ReportCount struct {
-	App, Instance, Tag      string
-	Critical, Warning, Info int
-	Escalated               bool
+	SourceID  `json:"sourceId"`
+	Critical  int  `json:"critical"`
+	Warning   int  `json:"warning"`
+	Info      int  `json:"info"`
+	Escalated bool `json:"escalated"`
 }

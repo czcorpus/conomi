@@ -1,0 +1,154 @@
+<list>
+    <div if={ state.error != null }>Error: { state.error.response ? JSON.stringify(state.error.response.data) : JSON.stringify(state.error)}</div>
+
+    <form class="filters" if={ state.filters != null }>
+        <fieldset class="filter">
+            <label for="app">App:</label>
+            <select id="app" value={ state.selected.app } onchange={ updateAppFilter }>
+                <option value="" selected={state.selected.app == ""}>all</option>
+                <option each={ app in state.filters[0] } selected={state.selected.app == app} value={ app }>{ app }</option>
+            </select>
+        </fieldset>
+        <fieldset class="filter">
+            <label for="instance">Instance:</label>
+            <select id="instance" value={ state.selected.instance } onchange={ updateInstanceFilter }>
+                <option value="" selected={state.selected.instance == ""}>all</option>
+                <option each={ instance in state.filters[1] } selected={state.selected.instance == instance} value={ instance }>{ instance }</option>
+            </select>
+        </fieldset>
+        <fieldset class="filter">
+            <label for="tag">Tag:</label>
+            <select id="tag" value={ state.selected.tag } onchange={ updateTagFilter }>
+                <option value="" selected={state.selected.tag == ""}>all</option>
+                <option each={ tag in state.filters[2] } selected={state.selected.tag == tag} value={ tag }>{ tag }</option>
+            </select>
+        </fieldset>
+    </form>
+
+    <div if={ state.reports != null }>
+        <table>
+            <thead>
+                <tr>
+                    <th>Created</th>
+                    <th>App</th>
+                    <th>Instance</th>
+                    <th>Tag</th>
+                    <th>Severity</th>
+                    <th>Subject</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr each={report in state.reports} class={report.severity}>
+                    <td>{ report.created }</td>
+                    <td>{ report.sourceId.app }</td>
+                    <td>{ report.sourceId.instance }</td>
+                    <td>{ report.sourceId.tag }</td>
+                    <td>{ report.severity }</td>
+                    <td>{ report.subject }</td>
+                    <td><a href={`?id=${report.id}#detail`}>detail</a></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <style>
+        .filters {
+            display: flex;
+        }
+
+        .filter {
+            flex-grow: 1;
+        }
+    </style>
+
+    <script>
+        import axios from 'axios';
+        export default {
+            onBeforeMount(props, state) {
+                this.state.sources = null; // all available app, instance, tag identifiers
+                this.state.selected = null; // selected filter
+                this.state.filters = null; // avalable selectable values
+                this.state.reports = null; // filtered reports
+                this.state.error = null;
+                this.state.isBusy = true;
+
+                // retrieve list of sources
+                axios.get("/sources")
+                    .then(resp => this.update({sources: resp.data}))
+                    .catch(error => this.update({error}));
+
+                // process sources using selection to get available filter values
+                this.processSources = (selected) => {
+                    const apps = [];
+                    const instances = [];
+                    const tags = [];
+                    this.state.sources.forEach(source => {
+                        if ((selected.instance == "" || source.instance == selected.instance) &&
+                            (selected.tag == "" || source.tag == selected.tag ) &&
+                            source.app != "" && !apps.includes(source.app)
+                        ) {
+                            apps.push(source.app)
+                        }
+
+                        if ((selected.app == "" || source.app == selected.app) &&
+                            (selected.tag == "" || source.tag == selected.tag ) &&
+                            source.instance != "" && !instances.includes(source.instance)
+                        ) {
+                            instances.push(source.instance)
+                        }
+
+                        if ((selected.app == "" || source.app == selected.app) &&
+                            (selected.instance == "" || source.instance == selected.instance ) &&
+                            source.tag != "" && !tags.includes(source.tag)
+                        ) {
+                            tags.push(source.tag)
+                        }
+                    });
+                    return [apps, instances, tags];
+                }
+
+                // update all data when changing selection
+                this.updateFilter = (selected) => {
+                    axios.get("/reports", {params: selected})
+                        .then(resp => this.update({
+                            reports: resp.data,
+                            selected,
+                            filters: this.processSources(selected),
+                            isBusy: false,
+                        }))
+                        .catch(error => this.update({
+                            error,
+                            isBusy: false,
+                        }));
+                }
+            },
+            onMounted(props, state) {
+                // initial filter select
+                this.updateFilter({
+                    app: props.app ? props.app : "",
+                    instance: props.instance ? props.instance : "",
+                    tag: props.tag ? props.tag : "",
+                });
+            },
+            updateAppFilter(event) {
+                this.update({isBusy: true})
+                const selected = this.state.selected;
+                selected.app = event.target.value;
+                this.updateFilter(selected);
+            },
+            updateInstanceFilter(event) {
+                this.update({isBusy: true})
+                const selected = this.state.selected;
+                selected.instance = event.target.value;
+                this.updateFilter(selected);
+            },
+            updateTagFilter(event) {
+                this.update({isBusy: true})
+                const selected = this.state.selected;
+                selected.tag = event.target.value;
+                this.updateFilter(selected);
+            },
+        }
+    </script>
+</list>

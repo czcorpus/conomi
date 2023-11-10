@@ -61,9 +61,11 @@ func runApiServer(
 	engine := gin.New()
 	engine.Use(gin.Recovery())
 	engine.Use(logging.GinMiddleware())
-	engine.Use(uniresp.AlwaysJSONContentType())
+	// engine.Use(uniresp.AlwaysJSONContentType())
 	engine.NoMethod(uniresp.NoMethodHandler)
 	engine.NoRoute(uniresp.NotFoundHandler)
+	engine.StaticFS("/assets", http.Dir("./assets"))
+	engine.Static("/ui", "./dist")
 
 	n, err := notifiers.NewNotifiers(info, conf.Notifiers, conf.TimezoneLocation())
 	if err != nil {
@@ -79,6 +81,8 @@ func runApiServer(
 	engine.GET("/resolve/:reportId", r.ResolveReport)
 	engine.GET("/resolve-since/:reportId", r.ResolveReportsSince)
 	engine.GET("/reports", r.GetReports)
+	engine.GET("/sources", r.GetSources)
+	engine.GET("/counts", r.GetReportCounts)
 
 	log.Info().Msgf("starting to listen at %s:%d", conf.ListenAddress, conf.ListenPort)
 	srv := &http.Server{
