@@ -67,6 +67,7 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 			ctx, err, http.StatusInternalServerError)
 		return
 	}
+	ctx.Writer.Header().Set("Content-Type", "application/json")
 	uniresp.WriteJSONResponse(ctx.Writer, report)
 }
 
@@ -81,6 +82,7 @@ func (a *Actions) GetReports(ctx *gin.Context) {
 			ctx, err, http.StatusInternalServerError)
 		return
 	}
+	ctx.Writer.Header().Set("Content-Type", "application/json")
 	uniresp.WriteJSONResponse(ctx.Writer, reports)
 }
 
@@ -111,6 +113,7 @@ func (a *Actions) ResolveReport(ctx *gin.Context) {
 			ctx, err, http.StatusInternalServerError)
 		return
 	}
+	ctx.Writer.Header().Set("Content-Type", "application/json")
 	uniresp.WriteJSONResponse(ctx.Writer, map[string]int{"resolved": rows})
 }
 
@@ -141,6 +144,7 @@ func (a *Actions) ResolveReportsSince(ctx *gin.Context) {
 			ctx, err, http.StatusInternalServerError)
 		return
 	}
+	ctx.Writer.Header().Set("Content-Type", "application/json")
 	uniresp.WriteJSONResponse(ctx.Writer, map[string]int{"resolved": rows})
 }
 
@@ -164,6 +168,7 @@ func (a *Actions) GetReport(ctx *gin.Context) {
 		}
 		return
 	}
+	ctx.Writer.Header().Set("Content-Type", "application/json")
 	uniresp.WriteJSONResponse(ctx.Writer, report)
 }
 
@@ -180,6 +185,7 @@ func (a *Actions) GetSources(ctx *gin.Context) {
 		}
 		return
 	}
+	ctx.Writer.Header().Set("Content-Type", "application/json")
 	uniresp.WriteJSONResponse(ctx.Writer, filters)
 }
 
@@ -196,6 +202,7 @@ func (a *Actions) GetReportCounts(ctx *gin.Context) {
 		}
 		return
 	}
+	ctx.Writer.Header().Set("Content-Type", "application/json")
 	uniresp.WriteJSONResponse(ctx.Writer, counts)
 }
 
