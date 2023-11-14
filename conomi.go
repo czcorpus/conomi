@@ -30,6 +30,7 @@ import (
 
 	"github.com/czcorpus/cnc-gokit/logging"
 	"github.com/czcorpus/cnc-gokit/uniresp"
+	"github.com/czcorpus/conomi/auth"
 	"github.com/czcorpus/conomi/engine"
 	"github.com/czcorpus/conomi/escalator"
 	"github.com/czcorpus/conomi/general"
@@ -62,6 +63,7 @@ func runApiServer(
 	engine.Use(gin.Recovery())
 	engine.Use(logging.GinMiddleware())
 	// engine.Use(uniresp.AlwaysJSONContentType())
+	engine.Use(auth.Auth(conf.Auth, conf.PublicPath))
 	engine.NoMethod(uniresp.NoMethodHandler)
 	engine.NoRoute(uniresp.NotFoundHandler)
 	engine.StaticFS("/assets", http.Dir("./assets"))

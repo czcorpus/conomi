@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/czcorpus/cnc-gokit/logging"
+	"github.com/czcorpus/conomi/auth"
 	"github.com/czcorpus/conomi/engine"
 	"github.com/czcorpus/conomi/notifiers/common"
 	"github.com/rs/zerolog/log"
@@ -47,6 +48,7 @@ type Conf struct {
 	DB                     *engine.DBConf        `json:"db"`
 	Notifiers              []common.NotifierConf `json:"notifiers"`
 	PublicPath             string                `json:"publicPath"`
+	Auth                   *auth.AuthConf        `json:"auth"`
 
 	srcPath string
 }
