@@ -34,6 +34,17 @@ func GetTemplate(absPath string) (*template.Template, error) {
 	templateFunc := template.FuncMap{
 		"upper": strings.ToUpper,
 		"lower": strings.ToLower,
+		"severityToEmoji": func(svrt general.SeverityLevel) string {
+			switch svrt {
+			case general.SeverityLevelInfo:
+				return ":info:"
+			case general.SeverityLevelWarning:
+				return ":warning:"
+			case general.SeverityLevelCritical:
+				return ":siren:"
+			}
+			return ":orange_circle:"
+		},
 	}
 	return template.New(filepath.Base(absPath)).Funcs(templateFunc).ParseFiles(absPath)
 }
