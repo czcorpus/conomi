@@ -21,7 +21,6 @@ import (
 	"net/url"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
 )
 
 type authArgs struct {
@@ -41,6 +40,7 @@ func Auth(conf *AuthConf, publicPath string) gin.HandlerFunc {
 		}
 	}
 	return func(ctx *gin.Context) {
+		ctx.Set("authenticated", false)
 		cookieSID, _ := ctx.Cookie(conf.CookieSID)
 		cookieAt, _ := ctx.Cookie(conf.CookieAt)
 		cookieRmme, err := ctx.Cookie(conf.CookieRmme)
@@ -57,7 +57,7 @@ func Auth(conf *AuthConf, publicPath string) gin.HandlerFunc {
 		params.Add("at", cookieAt)
 		params.Add("rmme", cookieRmme)
 		params.Add("lang", cookieLang)
-		params.Add("current", "kontext")
+		params.Add("current", "conomi")
 		params.Add("continue", publicPath+ctx.FullPath())
 		query := params.Encode()
 
@@ -82,22 +82,22 @@ func Auth(conf *AuthConf, publicPath string) gin.HandlerFunc {
 
 		var data map[string]interface{}
 		err = json.Unmarshal(respBody, &data)
-		log.Debug().Any("resp", data).Msg("")
 		if err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, err)
 		}
+		ctx.Set("toolbar", data)
+
 		redirect, ok := data["redirect"].(string)
 		if ok {
 			ctx.Redirect(http.StatusMovedPermanently, redirect)
 		}
 
 		user, ok := data["user"].(map[string]interface{})
-		if !ok {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-		}
-		_, ok = user["id"].(int)
-		if !ok {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
+		if ok {
+			_, ok = user["id"]
+			if ok {
+				ctx.Set("authenticated", true)
+			}
 		}
 
 		ctx.Next()

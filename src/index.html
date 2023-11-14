@@ -5,8 +5,20 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.0/milligram.css">
+  {{ if .toolbarHTML }}
+    {{ range $key, $value := .toolbarStyles }}
+      <link rel="stylesheet" href="{{ $value.url }}">
+    {{ end }}
+    <script src="{{ .toolbarScripts.main }}"></script>
+    <style>
+      #root {
+        margin-top: 2.5em;
+      }
+    </style>
+  {{ end }}
 </head>
 <body>
-  <div id="root"/>
+  <div id="toolbar">{{ .toolbarHTML }}</div>
+  <div id="root"></div>
 </body>
 </html>
