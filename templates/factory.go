@@ -45,7 +45,7 @@ func GetTemplate(absPath string) (*template.Template, error) {
 			}
 			return ":orange_circle:"
 		},
-		"mkReportLabel": func(report general.Report) string {
+		"mkReportSourceIDLabel": func(report general.Report) string {
 			var ans strings.Builder
 			ans.WriteString(report.SourceID.App)
 			if report.SourceID.Instance != "" {

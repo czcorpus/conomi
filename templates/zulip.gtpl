@@ -1,6 +1,5 @@
-# {{ .Report.Severity | severityToEmoji }} *{{ .Report.Severity.String | upper }}
-## {{ .Report | mkReportLabel }}
-### {{ .Report.Subject }}
+# {{ .Report.Severity | severityToEmoji }} {{ .Report.Severity.String | upper }}: {{ .Report.Subject }}
+## {{ .Report | mkReportSourceIDLabel }}
 
 {{ .Report.Body }}
 {{ if and .Info.PublicPath .Report.ID }}
