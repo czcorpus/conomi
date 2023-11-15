@@ -78,9 +78,9 @@ func NewReportSQL(r general.Report) (*ReportSQL, error) {
 	}
 	return &ReportSQL{
 		ID:               r.ID,
-		App:              r.App,
-		Instance:         sql.NullString{Valid: r.Instance != "", String: r.Instance},
-		Tag:              sql.NullString{Valid: r.Tag != "", String: r.Tag},
+		App:              r.SourceID.App,
+		Instance:         sql.NullString{Valid: r.SourceID.Instance != "", String: r.SourceID.Instance},
+		Tag:              sql.NullString{Valid: r.SourceID.Tag != "", String: r.SourceID.Tag},
 		Severity:         r.Severity,
 		Subject:          r.Subject,
 		Body:             r.Body,

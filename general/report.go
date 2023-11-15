@@ -27,7 +27,7 @@ type SourceID struct {
 }
 
 type Report struct {
-	SourceID         `json:"sourceId"`
+	SourceID         SourceID       `json:"sourceId"`
 	ID               int            `json:"id"`
 	Severity         SeverityLevel  `json:"severity"`
 	Subject          string         `json:"subject"`
@@ -38,9 +38,9 @@ type Report struct {
 }
 
 type ReportCount struct {
-	SourceID  `json:"sourceId"`
-	Critical  int  `json:"critical"`
-	Warning   int  `json:"warning"`
-	Info      int  `json:"info"`
-	Escalated bool `json:"escalated"`
+	SourceID  SourceID `json:"sourceId"`
+	Critical  int      `json:"critical"`
+	Warning   int      `json:"warning"`
+	Info      int      `json:"info"`
+	Escalated bool     `json:"escalated"`
 }
