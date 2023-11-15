@@ -21,6 +21,7 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 	"os/signal"
@@ -30,6 +31,7 @@ import (
 
 	"github.com/czcorpus/cnc-gokit/logging"
 	"github.com/czcorpus/cnc-gokit/uniresp"
+	"github.com/czcorpus/conomi/auth"
 	"github.com/czcorpus/conomi/engine"
 	"github.com/czcorpus/conomi/escalator"
 	"github.com/czcorpus/conomi/general"
@@ -62,10 +64,41 @@ func runApiServer(
 	engine.Use(gin.Recovery())
 	engine.Use(logging.GinMiddleware())
 	// engine.Use(uniresp.AlwaysJSONContentType())
+	engine.Use(auth.Auth(conf.Auth, conf.PublicPath))
 	engine.NoMethod(uniresp.NoMethodHandler)
 	engine.NoRoute(uniresp.NotFoundHandler)
-	engine.StaticFS("/assets", http.Dir("./assets"))
-	engine.Static("/ui", "./dist")
+	engine.StaticFS("/ui/assets", http.Dir("./assets"))
+	engine.Static("/ui/js", "./dist/js")
+	engine.Static("/ui/css", "./dist/css")
+	engine.LoadHTMLFiles("./dist/index.html")
+
+	uiHandler := func(c *gin.Context) {
+		toolbar, exists := c.Get("toolbar")
+		tb, tbOk := toolbar.(map[string]interface{})
+		toolbarHTML, htmlOk := tb["html"].(string)
+		authenticated, _ := c.Get("authenticated")
+		authBool, _ := authenticated.(bool)
+		status := http.StatusOK
+		if !authBool {
+			status = http.StatusUnauthorized
+		}
+
+		if exists && tbOk && htmlOk {
+			c.HTML(status, "index.html", gin.H{
+				"toolbarHTML":    template.HTML(toolbarHTML),
+				"toolbarStyles":  tb["styles"],
+				"toolbarScripts": tb["scripts"],
+				"authenticated":  authBool,
+			})
+		} else {
+			c.HTML(status, "index.html", gin.H{
+				"authenticated": authBool,
+			})
+		}
+	}
+	engine.GET("/ui/", uiHandler)
+	engine.GET("/ui/list", uiHandler)
+	engine.GET("/ui/detail", uiHandler)
 
 	n, err := notifiers.NewNotifiers(info, conf.Notifiers, conf.TimezoneLocation())
 	if err != nil {

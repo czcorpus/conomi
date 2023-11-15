@@ -44,5 +44,12 @@
             }
         }
     ],
-    "publicPath": "http://somepath.com"
+    "publicPath": "http://somepath.com",
+    "auth": {
+        "toolbarUrl": "http://toolbar.path",
+        "cookieSid": "cnc_toolbar_sid",
+        "cookieAt": "cnc_toolbar_at",
+        "cookieRmme": "cnc_toolbar_rmme",
+        "cookieLang": "cnc_toolbar_lang"
+    }
 }

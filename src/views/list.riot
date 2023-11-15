@@ -46,7 +46,7 @@
                     <td>{ report.sourceId.tag }</td>
                     <td>{ report.severity }</td>
                     <td>{ report.subject }</td>
-                    <td><a href={`?id=${report.id}#detail`}>detail</a></td>
+                    <td><a href={`detail?id=${report.id}`}>detail</a></td>
                 </tr>
             </tbody>
         </table>
@@ -72,11 +72,6 @@
                 this.state.reports = null; // filtered reports
                 this.state.error = null;
                 this.state.isBusy = true;
-
-                // retrieve list of sources
-                axios.get("/sources")
-                    .then(resp => this.update({sources: resp.data}))
-                    .catch(error => this.update({error}));
 
                 // process sources using selection to get available filter values
                 this.processSources = (selected) => {
@@ -110,7 +105,7 @@
 
                 // update all data when changing selection
                 this.updateFilter = (selected) => {
-                    axios.get("/reports", {params: selected})
+                    axios.get(props.baseUrl+"/reports", {params: selected})
                         .then(resp => this.update({
                             reports: resp.data,
                             selected,
@@ -122,14 +117,19 @@
                             isBusy: false,
                         }));
                 }
-            },
-            onMounted(props, state) {
-                // initial filter select
-                this.updateFilter({
-                    app: props.app ? props.app : "",
-                    instance: props.instance ? props.instance : "",
-                    tag: props.tag ? props.tag : "",
-                });
+
+                // retrieve list of sources
+                axios.get(props.baseUrl+"/sources")
+                    .then(resp => {
+                        this.update({sources: resp.data});
+                        // initial filter select
+                        this.updateFilter({
+                            app: props.app ? props.app : "",
+                            instance: props.instance ? props.instance : "",
+                            tag: props.tag ? props.tag : "",
+                        });
+                    })
+                    .catch(error => this.update({error}));
             },
             updateAppFilter(event) {
                 this.update({isBusy: true})

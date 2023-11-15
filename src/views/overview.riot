@@ -14,7 +14,7 @@
             <tbody>
                 <tr each={ count in state.counts }>
                     <td>
-                        <a href={`?app=${count.sourceId.app}&instance=${count.sourceId.instance}&tag=${count.sourceId.tag}#list`}>
+                        <a href={`list?app=${count.sourceId.app}&instance=${count.sourceId.instance}&tag=${count.sourceId.tag}`}>
                             { count.sourceId.app } / { count.sourceId.instance } # { count.sourceId.tag }
                         </a>
                     </td>
@@ -33,7 +33,7 @@
             onBeforeMount(props, state) {
                 this.state.counts = null;
                 this.state.error = null;
-                axios.get("/counts")
+                axios.get(props.baseUrl+"/counts")
                     .then(resp => this.update({counts: resp.data}))
                     .catch(error => this.update({error}))
             },
