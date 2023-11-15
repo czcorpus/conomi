@@ -67,7 +67,7 @@ func runApiServer(
 	engine.Use(auth.Auth(conf.Auth, conf.PublicPath))
 	engine.NoMethod(uniresp.NoMethodHandler)
 	engine.NoRoute(uniresp.NotFoundHandler)
-	engine.StaticFS("/assets", http.Dir("./assets"))
+	engine.StaticFS("/ui/assets", http.Dir("./assets"))
 	engine.Static("/ui/js", "./dist/js")
 	engine.Static("/ui/css", "./dist/css")
 	engine.LoadHTMLFiles("./dist/index.html")

@@ -66,7 +66,6 @@ func Auth(conf *AuthConf, publicPath string) gin.HandlerFunc {
 			ctx.AbortWithError(http.StatusInternalServerError, err)
 		}
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, err)

@@ -1,28 +1,27 @@
 <app>
-  <router base="/ui">
+  <router base="{props.baseUrl}/ui">
     <div class="heading">
-      <img class="logo" src="/assets/img/logo.jpeg">
-      <span class="title">Conomi</span>
+      <img class="logo" src="{props.baseUrl}/ui/assets/img/logo.jpeg">
+      <span class="title conomi-color">Conomi</span>
       <nav>
         <!-- These links will trigger automatically HTML5 history events -->
-        <a class="menu" href="/ui/">Overview</a>
-        <a class="menu" href="/ui/list">List</a>
+        <a class="menu" href="{props.baseUrl}/ui/">Overview</a>
+        <a class="menu" href="{props.baseUrl}/ui/list">List</a>
       </nav>
     </div>
 
     <div class="content">
-      <route path="/ui/">
-        <overview></overview>
+      <route path="/">
+        <overview baseUrl={props.baseUrl}></overview>
       </route>
 
-      <route path="/ui/list(.*)">
-        <list app={route.searchParams.get('app')} instance={route.searchParams.get('instance')} tag={route.searchParams.get('tag')}></list>
+      <route path="/list(.*)">
+        <list baseUrl={props.baseUrl} app={route.searchParams.get('app')} instance={route.searchParams.get('instance')} tag={route.searchParams.get('tag')}></list>
       </route>
 
-      <route path="/ui/detail(.*)">
-        <detail reportId={route.searchParams.get('id')}></detail>
+      <route path="/detail(.*)">
+        <detail baseUrl={props.baseUrl} reportId={route.searchParams.get('id')}></detail>
       </route>
-
     </div>
   </router>
 

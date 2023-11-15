@@ -33,7 +33,7 @@
             onBeforeMount(props, state) {
                 this.state.counts = null;
                 this.state.error = null;
-                axios.get("/counts")
+                axios.get(props.baseUrl+"/counts")
                     .then(resp => this.update({counts: resp.data}))
                     .catch(error => this.update({error}))
             },

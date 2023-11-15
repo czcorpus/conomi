@@ -54,7 +54,7 @@
             onBeforeMount(props, state) {
                 this.state.report = null;
                 this.state.error = null;
-                axios.get(`/report/${props.reportId}`)
+                axios.get(`${props.baseUrl}/report/${props.reportId}`)
                     .then(resp => this.update({report: resp.data}))
                     .catch(error => this.update({error}))
             },
