@@ -63,7 +63,7 @@ func runApiServer(
 	engine := gin.New()
 	engine.Use(gin.Recovery())
 	engine.Use(logging.GinMiddleware())
-	engine.Use(auth.Auth(conf.Auth, conf.PublicPath))
+	engine.Use(auth.Authenticate(conf.Auth, conf.PublicPath))
 	engine.NoMethod(uniresp.NoMethodHandler)
 	engine.NoRoute(uniresp.NotFoundHandler)
 
@@ -77,6 +77,7 @@ func runApiServer(
 	}
 	r := reporting.NewActions(conf.TimezoneLocation(), sqlDB, n, e)
 	api := engine.Group("/api")
+	api.Use(auth.AbortUnauthorized())
 	api.Use(uniresp.AlwaysJSONContentType())
 	api.POST("/report", r.PostReport)
 	api.GET("/report/:reportId", r.GetReport)
@@ -92,27 +93,26 @@ func runApiServer(
 	ui.Static("/js", "./dist/js")
 	ui.Static("/css", "./dist/css")
 	uiHandler := func(c *gin.Context) {
+		params := gin.H{}
 		toolbar, exists := c.Get("toolbar")
-		tb, tbOk := toolbar.(map[string]interface{})
-		toolbarHTML, htmlOk := tb["html"].(string)
-		authenticated, _ := c.Get("authenticated")
-		authBool, _ := authenticated.(bool)
-		status := http.StatusOK
-		if !authBool {
-			status = http.StatusUnauthorized
+		if exists {
+			tb, tbOk := toolbar.(map[string]interface{})
+			if tbOk {
+				toolbarHTML, htmlOk := tb["html"].(string)
+				if htmlOk {
+					params["toolbarHTML"] = template.HTML(toolbarHTML)
+					params["toolbarStyles"] = tb["styles"]
+					params["toolbarScripts"] = tb["scripts"]
+				}
+			}
 		}
+		auth, _ := c.Get("authenticated")
+		if auth == false {
+			params["errorMsg"] = "Unauthorized"
+			c.HTML(http.StatusUnauthorized, "index.html", params)
 
-		if exists && tbOk && htmlOk {
-			c.HTML(status, "index.html", gin.H{
-				"toolbarHTML":    template.HTML(toolbarHTML),
-				"toolbarStyles":  tb["styles"],
-				"toolbarScripts": tb["scripts"],
-				"authenticated":  authBool,
-			})
 		} else {
-			c.HTML(status, "index.html", gin.H{
-				"authenticated": authBool,
-			})
+			c.HTML(http.StatusOK, "index.html", params)
 		}
 	}
 	ui.GET("/", uiHandler)

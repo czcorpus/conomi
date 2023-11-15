@@ -2,6 +2,11 @@
   color: #ffd602;
 }
 
+#error {
+  margin-top: 5em;
+  text-align: center;
+}
+
 .warning {
   background-color: #b3ffb3;
 }
