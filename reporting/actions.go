@@ -28,6 +28,7 @@ import (
 	"github.com/czcorpus/conomi/general"
 	"github.com/czcorpus/conomi/notifiers"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 type Actions struct {
@@ -44,6 +45,14 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 			ctx, err, http.StatusBadRequest)
 		return
 	}
+	log.Debug().
+		Str("severity", string(report.Severity)).
+		Str("subject", report.Subject).
+		Str("app", report.SourceID.App).
+		Str("instance", report.SourceID.Instance).
+		Str("tag", report.SourceID.Tag).
+		Any("args", report.Args).
+		Msg("Obtained report via HTTP API")
 	if err := report.Severity.Validate(); err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusBadRequest)
