@@ -23,16 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type authArgs struct {
-	SID      string `json:"sid"`
-	At       string `json:"at"`
-	Rmme     string `json:"rmme"`
-	Lang     string `json:"lang"`
-	Current  string `json:"current"`
-	Continue string `json:"continue"`
-}
-
-func Auth(conf *AuthConf, publicPath string) gin.HandlerFunc {
+func Authenticate(conf *AuthConf, publicPath string) gin.HandlerFunc {
 	if conf == nil {
 		return func(ctx *gin.Context) {
 			ctx.Set("authenticated", true)
@@ -86,11 +77,6 @@ func Auth(conf *AuthConf, publicPath string) gin.HandlerFunc {
 		}
 		ctx.Set("toolbar", data)
 
-		redirect, ok := data["redirect"].(string)
-		if ok {
-			ctx.Redirect(http.StatusMovedPermanently, redirect)
-		}
-
 		user, ok := data["user"].(map[string]interface{})
 		if ok {
 			_, ok = user["id"]
@@ -100,5 +86,16 @@ func Auth(conf *AuthConf, publicPath string) gin.HandlerFunc {
 		}
 
 		ctx.Next()
+	}
+}
+
+func AbortUnauthorized() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		authenticated, exists := ctx.Get("authenticated")
+		if exists && authenticated == false {
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+		} else {
+			ctx.Next()
+		}
 	}
 }

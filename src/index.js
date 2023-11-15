@@ -18,5 +18,5 @@ register('detail', Detail);
 // app
 import App from './app.riot';
 const mountApp = component(App);
-mountApp(document.getElementById('root'), {baseUrl: process.env.BASE_URL});
+mountApp(document.getElementById('root'), {baseUrl: process.env.BASE_URL, renderContent: !errorMsg});
 

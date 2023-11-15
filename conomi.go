@@ -63,42 +63,9 @@ func runApiServer(
 	engine := gin.New()
 	engine.Use(gin.Recovery())
 	engine.Use(logging.GinMiddleware())
-	// engine.Use(uniresp.AlwaysJSONContentType())
-	engine.Use(auth.Auth(conf.Auth, conf.PublicPath))
+	engine.Use(auth.Authenticate(conf.Auth, conf.PublicPath))
 	engine.NoMethod(uniresp.NoMethodHandler)
 	engine.NoRoute(uniresp.NotFoundHandler)
-	engine.StaticFS("/ui/assets", http.Dir("./assets"))
-	engine.Static("/ui/js", "./dist/js")
-	engine.Static("/ui/css", "./dist/css")
-	engine.LoadHTMLFiles("./dist/index.html")
-
-	uiHandler := func(c *gin.Context) {
-		toolbar, exists := c.Get("toolbar")
-		tb, tbOk := toolbar.(map[string]interface{})
-		toolbarHTML, htmlOk := tb["html"].(string)
-		authenticated, _ := c.Get("authenticated")
-		authBool, _ := authenticated.(bool)
-		status := http.StatusOK
-		if !authBool {
-			status = http.StatusUnauthorized
-		}
-
-		if exists && tbOk && htmlOk {
-			c.HTML(status, "index.html", gin.H{
-				"toolbarHTML":    template.HTML(toolbarHTML),
-				"toolbarStyles":  tb["styles"],
-				"toolbarScripts": tb["scripts"],
-				"authenticated":  authBool,
-			})
-		} else {
-			c.HTML(status, "index.html", gin.H{
-				"authenticated": authBool,
-			})
-		}
-	}
-	engine.GET("/ui/", uiHandler)
-	engine.GET("/ui/list", uiHandler)
-	engine.GET("/ui/detail", uiHandler)
 
 	n, err := notifiers.NewNotifiers(info, conf.Notifiers, conf.TimezoneLocation())
 	if err != nil {
@@ -109,13 +76,48 @@ func runApiServer(
 		return err
 	}
 	r := reporting.NewActions(conf.TimezoneLocation(), sqlDB, n, e)
-	engine.POST("/report", r.PostReport)
-	engine.GET("/report/:reportId", r.GetReport)
-	engine.GET("/resolve/:reportId", r.ResolveReport)
-	engine.GET("/resolve-since/:reportId", r.ResolveReportsSince)
-	engine.GET("/reports", r.GetReports)
-	engine.GET("/sources", r.GetSources)
-	engine.GET("/counts", r.GetReportCounts)
+	api := engine.Group("/api")
+	api.Use(auth.AbortUnauthorized())
+	api.Use(uniresp.AlwaysJSONContentType())
+	api.POST("/report", r.PostReport)
+	api.GET("/report/:reportId", r.GetReport)
+	api.GET("/resolve/:reportId", r.ResolveReport)
+	api.GET("/resolve-since/:reportId", r.ResolveReportsSince)
+	api.GET("/reports", r.GetReports)
+	api.GET("/sources", r.GetSources)
+	api.GET("/counts", r.GetReportCounts)
+
+	engine.LoadHTMLFiles("./dist/index.html")
+	ui := engine.Group("/ui")
+	ui.StaticFS("/assets", http.Dir("./assets"))
+	ui.Static("/js", "./dist/js")
+	ui.Static("/css", "./dist/css")
+	uiHandler := func(c *gin.Context) {
+		params := gin.H{}
+		toolbar, exists := c.Get("toolbar")
+		if exists {
+			tb, tbOk := toolbar.(map[string]interface{})
+			if tbOk {
+				toolbarHTML, htmlOk := tb["html"].(string)
+				if htmlOk {
+					params["toolbarHTML"] = template.HTML(toolbarHTML)
+					params["toolbarStyles"] = tb["styles"]
+					params["toolbarScripts"] = tb["scripts"]
+				}
+			}
+		}
+		auth, _ := c.Get("authenticated")
+		if auth == false {
+			params["errorMsg"] = "Unauthorized"
+			c.HTML(http.StatusUnauthorized, "index.html", params)
+
+		} else {
+			c.HTML(http.StatusOK, "index.html", params)
+		}
+	}
+	ui.GET("/", uiHandler)
+	ui.GET("/list", uiHandler)
+	ui.GET("/detail", uiHandler)
 
 	log.Info().Msgf("starting to listen at %s:%d", conf.ListenAddress, conf.ListenPort)
 	srv := &http.Server{

@@ -15,10 +15,18 @@
         margin-top: 2.5em;
       }
     </style>
+    <script>
+      const errorMsg = {{ .errorMsg }};
+    </script>
   {{ end }}
 </head>
 <body>
   <div id="toolbar">{{ .toolbarHTML }}</div>
   <div id="root"></div>
+  {{ if .errorMsg }}
+  <div id="error">
+    <h3 if={props.errorMsg}>{{ .errorMsg }}</h3>
+  </div>
+  {{ end }}
 </body>
 </html>

@@ -44,7 +44,7 @@ type conomiReport struct {
 }
 
 func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject string, body string, opts ...ReportOption) error {
-	reportURL, err := url.JoinPath(cc.conf.Server, "report")
+	reportURL, err := url.JoinPath(cc.conf.Server, "api", "report")
 	if err != nil {
 		return err
 	}

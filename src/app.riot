@@ -10,7 +10,7 @@
       </nav>
     </div>
 
-    <div class="content">
+    <div class="content" if={props.renderContent}>
       <route path="/">
         <overview baseUrl={props.baseUrl}></overview>
       </route>
