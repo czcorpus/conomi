@@ -63,15 +63,34 @@ func runApiServer(
 	engine := gin.New()
 	engine.Use(gin.Recovery())
 	engine.Use(logging.GinMiddleware())
-	// engine.Use(uniresp.AlwaysJSONContentType())
 	engine.Use(auth.Auth(conf.Auth, conf.PublicPath))
 	engine.NoMethod(uniresp.NoMethodHandler)
 	engine.NoRoute(uniresp.NotFoundHandler)
-	engine.StaticFS("/ui/assets", http.Dir("./assets"))
-	engine.Static("/ui/js", "./dist/js")
-	engine.Static("/ui/css", "./dist/css")
-	engine.LoadHTMLFiles("./dist/index.html")
 
+	n, err := notifiers.NewNotifiers(info, conf.Notifiers, conf.TimezoneLocation())
+	if err != nil {
+		return err
+	}
+	e, err := escalator.NewEscalator(sqlDB, n)
+	if err != nil {
+		return err
+	}
+	r := reporting.NewActions(conf.TimezoneLocation(), sqlDB, n, e)
+	api := engine.Group("/api")
+	api.Use(uniresp.AlwaysJSONContentType())
+	api.POST("/report", r.PostReport)
+	api.GET("/report/:reportId", r.GetReport)
+	api.GET("/resolve/:reportId", r.ResolveReport)
+	api.GET("/resolve-since/:reportId", r.ResolveReportsSince)
+	api.GET("/reports", r.GetReports)
+	api.GET("/sources", r.GetSources)
+	api.GET("/counts", r.GetReportCounts)
+
+	engine.LoadHTMLFiles("./dist/index.html")
+	ui := engine.Group("/ui")
+	ui.StaticFS("/assets", http.Dir("./assets"))
+	ui.Static("/js", "./dist/js")
+	ui.Static("/css", "./dist/css")
 	uiHandler := func(c *gin.Context) {
 		toolbar, exists := c.Get("toolbar")
 		tb, tbOk := toolbar.(map[string]interface{})
@@ -96,26 +115,9 @@ func runApiServer(
 			})
 		}
 	}
-	engine.GET("/ui/", uiHandler)
-	engine.GET("/ui/list", uiHandler)
-	engine.GET("/ui/detail", uiHandler)
-
-	n, err := notifiers.NewNotifiers(info, conf.Notifiers, conf.TimezoneLocation())
-	if err != nil {
-		return err
-	}
-	e, err := escalator.NewEscalator(sqlDB, n)
-	if err != nil {
-		return err
-	}
-	r := reporting.NewActions(conf.TimezoneLocation(), sqlDB, n, e)
-	engine.POST("/report", r.PostReport)
-	engine.GET("/report/:reportId", r.GetReport)
-	engine.GET("/resolve/:reportId", r.ResolveReport)
-	engine.GET("/resolve-since/:reportId", r.ResolveReportsSince)
-	engine.GET("/reports", r.GetReports)
-	engine.GET("/sources", r.GetSources)
-	engine.GET("/counts", r.GetReportCounts)
+	ui.GET("/", uiHandler)
+	ui.GET("/list", uiHandler)
+	ui.GET("/detail", uiHandler)
 
 	log.Info().Msgf("starting to listen at %s:%d", conf.ListenAddress, conf.ListenPort)
 	srv := &http.Server{

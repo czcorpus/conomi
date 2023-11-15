@@ -23,15 +23,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type authArgs struct {
-	SID      string `json:"sid"`
-	At       string `json:"at"`
-	Rmme     string `json:"rmme"`
-	Lang     string `json:"lang"`
-	Current  string `json:"current"`
-	Continue string `json:"continue"`
-}
-
 func Auth(conf *AuthConf, publicPath string) gin.HandlerFunc {
 	if conf == nil {
 		return func(ctx *gin.Context) {
