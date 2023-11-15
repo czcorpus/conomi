@@ -36,11 +36,11 @@ type ConomiClient struct {
 }
 
 type conomiReport struct {
-	general.SourceID `json:"sourceId"`
-	Severity         general.SeverityLevel `json:"severity"`
-	Subject          string                `json:"subject"`
-	Body             string                `json:"body"`
-	Args             map[string]any        `json:"args"`
+	SourceID general.SourceID      `json:"sourceId"`
+	Severity general.SeverityLevel `json:"severity"`
+	Subject  string                `json:"subject"`
+	Body     string                `json:"body"`
+	Args     map[string]any        `json:"args"`
 }
 
 func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject string, body string, opts ...ReportOption) error {
@@ -72,6 +72,15 @@ func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject strin
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
+	log.Debug().
+		Err(err).
+		Str("severity", string(severity)).
+		Str("subject", subject).
+		Str("app", report.SourceID.App).
+		Str("instance", report.SourceID.Instance).
+		Str("tag", report.SourceID.Tag).
+		Any("args", report.Args).
+		Msg("sent Conomi report via HTTP")
 	if err != nil {
 		return err
 	}

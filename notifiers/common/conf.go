@@ -57,7 +57,7 @@ func (f *FilterConf) IsFiltered(message *general.Report) bool {
 		validLevel = contains(f.Levels, message.Severity)
 	}
 	if f.Apps != nil {
-		validApp = contains(f.Apps, message.App)
+		validApp = contains(f.Apps, message.SourceID.App)
 	}
 	return validLevel && validApp
 }
