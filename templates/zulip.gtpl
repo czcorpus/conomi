@@ -1,4 +1,4 @@
-# {{ .Report.Severity | severityToEmoji }} *{{ .Report.Severity.String | upper }} ({{ .Report.App }}{{ if .Report.Instance }}/{{ .Report.Instance }}{{ end }}):* {{ .Report.Subject }}
+# {{ .Report.Severity | severityToEmoji }} *{{ .Report.Severity.String | upper }} ({{ .Report | mkReportLabel }}):* {{ .Report.Subject }}
 {{ .Report.Body }}
 {{ if and .Info.PublicPath .Report.ID }}
 ```spoiler Report actions
