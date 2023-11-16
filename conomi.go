@@ -87,11 +87,11 @@ func runApiServer(
 	api.GET("/sources", r.GetSources)
 	api.GET("/counts", r.GetReportCounts)
 
-	engine.LoadHTMLFiles("./dist/index.html")
+	engine.LoadHTMLFiles(filepath.Join(conf.ClientDistDirPath, "index.html"))
 	ui := engine.Group("/ui")
-	ui.StaticFS("/assets", http.Dir("./assets"))
-	ui.Static("/js", "./dist/js")
-	ui.Static("/css", "./dist/css")
+	ui.StaticFS("/assets", http.Dir(conf.ClientAssetsDirPath))
+	ui.Static("/js", filepath.Join(conf.ClientDistDirPath, "js"))
+	ui.Static("/css", filepath.Join(conf.ClientDistDirPath, "css"))
 	uiHandler := func(c *gin.Context) {
 		params := gin.H{}
 		toolbar, exists := c.Get("toolbar")
