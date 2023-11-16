@@ -27,14 +27,15 @@ type SourceID struct {
 }
 
 type Report struct {
-	SourceID         SourceID       `json:"sourceId"`
-	ID               int            `json:"id"`
-	Severity         SeverityLevel  `json:"severity"`
-	Subject          string         `json:"subject"`
-	Body             string         `json:"body"`
-	Args             map[string]any `json:"args"`
-	Created          time.Time      `json:"created"`
-	ResolvedByUserID int            `json:"resolvedByUserId"` // for empty user we use value -1
+	SourceID           SourceID       `json:"sourceId"`
+	ID                 int            `json:"id"`
+	Severity           SeverityLevel  `json:"severity"`
+	Subject            string         `json:"subject"`
+	Body               string         `json:"body"`
+	Args               map[string]any `json:"args"`
+	Created            time.Time      `json:"created"`
+	ResolvedByUserID   int            `json:"resolvedByUserId"` // for empty user we use value -1
+	ResolvedByUserName string         `json:"resolvedByUserName"`
 }
 
 type ReportCount struct {

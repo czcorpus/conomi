@@ -24,10 +24,10 @@
                     <td>{ state.report.created }</td>
                     <td>{ state.report.severity }</td>
                     <td if={ state.report.resolvedByUserId == -1 }>
-                        <button class="button button-small" onclick={ () => resolveReport(props.baseUrl, props.reportId) }>Resolve</button>
+                        <button class="button button-small" onclick={ () => resolveReport(props.baseUrl, props.reportId) }>Resolve group</button>
                     </td>
                     <td if={ state.report.resolvedByUserId != -1 }>{
-                        state.report.resolvedByUserId
+                        state.report.resolvedByUserName
                     }</td>
                 </tr>
             </tbody>

@@ -81,7 +81,7 @@ func runApiServer(
 	api.Use(uniresp.AlwaysJSONContentType())
 	api.POST("/report", r.PostReport)
 	api.GET("/report/:reportId", r.GetReport)
-	api.GET("/resolve/:reportId", r.ResolveReport)
+	api.POST("/resolve/:reportId", r.ResolveReport)
 	api.POST("/resolve-group/:reportId", r.ResolveGroup)
 	api.GET("/reports", r.GetReports)
 	api.GET("/sources", r.GetSources)

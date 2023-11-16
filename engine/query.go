@@ -96,13 +96,15 @@ func (rdb *ReportsDatabase) ListReports(app, instance, tag string) ([]*general.R
 }
 
 func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) {
-	sql1 := "SELECT id, app, instance, tag, severity, subject, body, args, created, resolved_by_user_id " +
-		"FROM conomi_reports " +
-		"WHERE id = ? LIMIT 1"
+	sql1 := "SELECT cr.id, cr.app, cr.instance, cr.tag, cr.severity, cr.subject, cr.body, cr.args, cr.created, cr.resolved_by_user_id, us.user as resolved_by_user_name " +
+		"FROM conomi_reports AS cr " +
+		"LEFT JOIN users AS us " +
+		"ON cr.resolved_by_user_id = us.id " +
+		"WHERE cr.id = ? LIMIT 1"
 	log.Debug().Str("sql", sql1).Msgf("going to SELECT conomi_reports WHERE id = %d", reportID)
 	entry := &ReportSQL{}
 	row := rdb.db.QueryRow(sql1, reportID)
-	if err := row.Scan(&entry.ID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID); err != nil {
+	if err := row.Scan(&entry.ID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID, &entry.ResolvedByUserName); err != nil {
 		return nil, err
 	}
 	if err := entry.Severity.Validate(); err != nil {
