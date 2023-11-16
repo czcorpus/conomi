@@ -41,7 +41,7 @@
                 </tr>
                 <tr>
                     <td>Args</td>
-                    <td>{ state.report.args }</td>
+                    <td>{ state.report.args ? JSON.stringify(state.report.args) : null }</td>
                 </tr>
             </tbody>
         </table>
