@@ -39,6 +39,8 @@ const (
 type Conf struct {
 	ListenAddress          string                `json:"listenAddress"`
 	ListenPort             int                   `json:"listenPort"`
+	ClientDistDirPath      string                `json:"clientDistDirPath"`
+	ClientAssetsDirPath    string                `json:"clientAssetsDirPath"`
 	ServerReadTimeoutSecs  int                   `json:"serverReadTimeoutSecs"`
 	ServerWriteTimeoutSecs int                   `json:"serverWriteTimeoutSecs"`
 	LogFile                string                `json:"logFile"`
@@ -104,13 +106,25 @@ func ValidateAndDefaults(conf *Conf) {
 			dfltServerWriteTimeoutSecs,
 		)
 	}
+	if conf.ClientDistDirPath == "" {
+		conf.ClientDistDirPath = "./dist"
+		log.Warn().
+			Str("default", conf.ClientDistDirPath).
+			Msg("clientDistDir not specified, using default")
+	}
+	if conf.ClientAssetsDirPath == "" {
+		conf.ClientAssetsDirPath = "./assets"
+		log.Warn().
+			Str("default", conf.ClientAssetsDirPath).
+			Msg("clientAssetsDirPath not specified, using default")
+	}
 	if conf.Language == "" {
 		conf.Language = dfltLanguage
 		log.Warn().Msgf("language not specified, using default: %s", conf.Language)
 	}
 	if conf.TimeZone == "" {
 		log.Warn().
-			Str("timeZone", dfltTimeZone).
+			Str("default", dfltTimeZone).
 			Msg("time zone not specified, using default")
 	}
 	if _, err := time.LoadLocation(conf.TimeZone); err != nil {
