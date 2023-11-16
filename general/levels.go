@@ -26,16 +26,21 @@ const (
 	SeverityLevelInfo     SeverityLevel = "info"
 	SeverityLevelWarning  SeverityLevel = "warning"
 	SeverityLevelCritical SeverityLevel = "critical"
+	SeverityLevelRecovery SeverityLevel = "recovery"
 )
 
 func (sl SeverityLevel) Validate() error {
-	if !(sl == SeverityLevelInfo || sl == SeverityLevelWarning || sl == SeverityLevelCritical) {
+	if !(sl == SeverityLevelInfo ||
+		sl == SeverityLevelWarning ||
+		sl == SeverityLevelCritical ||
+		sl == SeverityLevelRecovery) {
 		return fmt.Errorf(
-			"invalid level `%s`, use: `%s`, `%s` or `%s`",
+			"invalid level `%s`, use: `%s`, `%s`, `%s` or `%s`",
 			sl,
 			SeverityLevelInfo,
 			SeverityLevelWarning,
 			SeverityLevelCritical,
+			SeverityLevelRecovery,
 		)
 	}
 	return nil
