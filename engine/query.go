@@ -122,13 +122,13 @@ func (rdb *ReportsDatabase) ResolveReport(reportID int, userID int) (int, error)
 	return int(rows), err
 }
 
-func (rdb *ReportsDatabase) ResolveReportsSince(reportID int, userID int) (int, error) {
+func (rdb *ReportsDatabase) ResolveGroup(reportID int, userID int) (int, error) {
 	sql1 := "UPDATE conomi_reports AS upd " +
 		"INNER JOIN conomi_reports AS sel " +
-		"ON upd.app = sel.app AND upd.instance <=> sel.instance AND upd.tag <=> sel.tag AND upd.created >= sel.created AND sel.id = ? " +
+		"ON upd.app = sel.app AND upd.instance <=> sel.instance AND upd.tag <=> sel.tag AND sel.id = ? " +
 		"SET upd.resolved_by_user_id = ? " +
 		"WHERE upd.resolved_by_user_id IS NULL"
-	log.Debug().Str("sql", sql1).Msgf("going to resolve new reports WHERE id = %d", reportID)
+	log.Debug().Str("sql", sql1).Msgf("going to resolve all group reports WHERE id = %d", reportID)
 	result, err := rdb.db.Exec(sql1, reportID, userID)
 	if err != nil {
 		return 0, err

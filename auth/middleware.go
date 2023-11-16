@@ -79,9 +79,10 @@ func Authenticate(conf *AuthConf, publicPath string) gin.HandlerFunc {
 
 		user, ok := data["user"].(map[string]interface{})
 		if ok {
-			_, ok = user["id"]
+			userID, ok := user["id"]
 			if ok {
 				ctx.Set("authenticated", true)
+				ctx.Set("userID", userID)
 			}
 		}
 

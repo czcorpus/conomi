@@ -24,7 +24,7 @@
                     <td>{ state.report.created }</td>
                     <td>{ state.report.severity }</td>
                     <td if={ state.report.resolvedByUserId == -1 }>
-                        <a class="button button-small" href="#">Resolve</a>
+                        <button class="button button-small" onclick={ () => resolveReport(props.baseUrl, props.reportId) }>Resolve</button>
                     </td>
                     <td if={ state.report.resolvedByUserId != -1 }>{
                         state.report.resolvedByUserId
@@ -58,10 +58,29 @@
         export default {
             onBeforeMount(props, state) {
                 this.state.report = null;
+                this.state.isBusy = true;
                 this.state.error = null;
-                axios.get(`${props.baseUrl}/api/report/${props.reportId}`)
-                    .then(resp => this.update({report: resp.data}))
-                    .catch(error => this.update({error}))
+                this.loadReport = () => {
+                    axios.get(`${props.baseUrl}/api/report/${props.reportId}`)
+                        .then(resp => this.update({
+                            report: resp.data,
+                            isBusy: false,
+                        }))
+                        .catch(error => this.update({
+                            error,
+                            isBusy: false,
+                        }));
+                };
+                this.loadReport();
+            },
+            resolveReport(baseUrl, reportId) {
+                this.update({isBusy: true});
+                axios.post(`${baseUrl}/api/resolve-group/${reportId}`)
+                    .then(resp => this.loadReport())
+                    .catch(error => this.update({
+                        error,
+                        isBusy: false,
+                    }));
             },
         }
     </script>
