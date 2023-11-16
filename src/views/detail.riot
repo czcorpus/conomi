@@ -23,7 +23,12 @@
                     <td>{ state.report.sourceId.tag }</td>
                     <td>{ state.report.created }</td>
                     <td>{ state.report.severity }</td>
-                    <td>{ state.report.resolvedByUserId }</td>
+                    <td if={ state.report.resolvedByUserId == -1 }>
+                        <a class="button button-small" href="#">Resolve</a>
+                    </td>
+                    <td if={ state.report.resolvedByUserId != -1 }>{
+                        state.report.resolvedByUserId
+                    }</td>
                 </tr>
             </tbody>
         </table>
