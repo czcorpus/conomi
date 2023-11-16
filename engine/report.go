@@ -26,16 +26,17 @@ import (
 
 // structure for simpler record data transformation between sql and go
 type ReportSQL struct {
-	ID               int
-	App              string
-	Instance         sql.NullString
-	Tag              sql.NullString
-	Severity         general.SeverityLevel
-	Subject          string
-	Body             string
-	Args             sql.NullString
-	Created          time.Time
-	ResolvedByUserID sql.NullInt32
+	ID                 int
+	App                string
+	Instance           sql.NullString
+	Tag                sql.NullString
+	Severity           general.SeverityLevel
+	Subject            string
+	Body               string
+	Args               sql.NullString
+	Created            time.Time
+	ResolvedByUserID   sql.NullInt32
+	ResolvedByUserName sql.NullString
 }
 
 func (r *ReportSQL) Export() (*general.Report, error) {
@@ -56,13 +57,14 @@ func (r *ReportSQL) Export() (*general.Report, error) {
 			Instance: r.Instance.String,
 			Tag:      r.Tag.String,
 		},
-		ID:               r.ID,
-		Severity:         r.Severity,
-		Subject:          r.Subject,
-		Body:             r.Body,
-		Args:             args,
-		Created:          r.Created,
-		ResolvedByUserID: resolvedByUserID,
+		ID:                 r.ID,
+		Severity:           r.Severity,
+		Subject:            r.Subject,
+		Body:               r.Body,
+		Args:               args,
+		Created:            r.Created,
+		ResolvedByUserID:   resolvedByUserID,
+		ResolvedByUserName: r.ResolvedByUserName.String,
 	}, nil
 }
 

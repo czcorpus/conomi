@@ -23,7 +23,12 @@
                     <td>{ state.report.sourceId.tag }</td>
                     <td>{ state.report.created }</td>
                     <td>{ state.report.severity }</td>
-                    <td>{ state.report.resolvedByUserId }</td>
+                    <td if={ state.report.resolvedByUserId == -1 }>
+                        <button class="button button-small" onclick={ () => resolveReport(props.baseUrl, props.reportId) }>Resolve group</button>
+                    </td>
+                    <td if={ state.report.resolvedByUserId != -1 }>{
+                        state.report.resolvedByUserName
+                    }</td>
                 </tr>
             </tbody>
         </table>
@@ -41,7 +46,7 @@
                 </tr>
                 <tr>
                     <td>Args</td>
-                    <td>{ state.report.args }</td>
+                    <td>{ state.report.args ? JSON.stringify(state.report.args) : null }</td>
                 </tr>
             </tbody>
         </table>
@@ -53,10 +58,29 @@
         export default {
             onBeforeMount(props, state) {
                 this.state.report = null;
+                this.state.isBusy = true;
                 this.state.error = null;
-                axios.get(`${props.baseUrl}/api/report/${props.reportId}`)
-                    .then(resp => this.update({report: resp.data}))
-                    .catch(error => this.update({error}))
+                this.loadReport = () => {
+                    axios.get(`${props.baseUrl}/api/report/${props.reportId}`)
+                        .then(resp => this.update({
+                            report: resp.data,
+                            isBusy: false,
+                        }))
+                        .catch(error => this.update({
+                            error,
+                            isBusy: false,
+                        }));
+                };
+                this.loadReport();
+            },
+            resolveReport(baseUrl, reportId) {
+                this.update({isBusy: true});
+                axios.post(`${baseUrl}/api/resolve-group/${reportId}`)
+                    .then(resp => this.loadReport())
+                    .catch(error => this.update({
+                        error,
+                        isBusy: false,
+                    }));
             },
         }
     </script>

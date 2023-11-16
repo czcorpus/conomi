@@ -81,8 +81,8 @@ func runApiServer(
 	api.Use(uniresp.AlwaysJSONContentType())
 	api.POST("/report", r.PostReport)
 	api.GET("/report/:reportId", r.GetReport)
-	api.GET("/resolve/:reportId", r.ResolveReport)
-	api.GET("/resolve-since/:reportId", r.ResolveReportsSince)
+	api.POST("/resolve/:reportId", r.ResolveReport)
+	api.POST("/resolve-group/:reportId", r.ResolveGroup)
 	api.GET("/reports", r.GetReports)
 	api.GET("/sources", r.GetSources)
 	api.GET("/counts", r.GetReportCounts)
@@ -106,8 +106,8 @@ func runApiServer(
 				}
 			}
 		}
-		auth, _ := c.Get("authenticated")
-		if auth == false {
+		auth, exists := c.Get("authenticated")
+		if exists && auth == false {
 			params["errorMsg"] = "Unauthorized"
 			c.HTML(http.StatusUnauthorized, "index.html", params)
 
