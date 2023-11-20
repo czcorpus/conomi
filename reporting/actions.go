@@ -182,6 +182,9 @@ func (a *Actions) GetReport(ctx *gin.Context) {
 		}
 		return
 	}
+	if ctx.Query("md-to-html") == "1" {
+		report.Body = mdToHTML(report.Body)
+	}
 	uniresp.WriteJSONResponse(ctx.Writer, report)
 }
 
