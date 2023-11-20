@@ -42,7 +42,7 @@
                 </tr>
                 <tr>
                     <td>Body</td>
-                    <td>{ state.report.body }</td>
+                    <td><raw content={ state.report.body }></raw></td>
                 </tr>
                 <tr>
                     <td>Args</td>
@@ -54,14 +54,18 @@
 
     <script>
         import axios from 'axios';
+        import Raw from '../components/raw.riot';
 
         export default {
+            components: {
+                raw: Raw,
+            },
             onBeforeMount(props, state) {
                 this.state.report = null;
                 this.state.isBusy = true;
                 this.state.error = null;
                 this.loadReport = () => {
-                    axios.get(`${props.baseUrl}/api/report/${props.reportId}`)
+                    axios.get(`${props.baseUrl}/api/report/${props.reportId}`, {params: {"md-to-html": "1"}})
                         .then(resp => this.update({
                             report: resp.data,
                             isBusy: false,
