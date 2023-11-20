@@ -28,7 +28,7 @@ func initDatabase(db *sql.DB) error {
 		instance varchar(50),
 		tag varchar(100),
 		created datetime DEFAULT NOW() NOT NULL,
-		severity varchar(50) NOT NULL,
+		escalated TINYINT(1) DEFAULT 0,
 		resolved_by_user_id int DEFAULT NULL,
 		PRIMARY KEY (id)
 	)`)

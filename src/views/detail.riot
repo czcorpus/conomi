@@ -79,7 +79,7 @@
             },
             resolveGroup(baseUrl, groupId) {
                 this.update({isBusy: true});
-                axios.post(`${baseUrl}/api/resolve-group/${groupId}`)
+                axios.post(`${baseUrl}/api/resolve/${groupId}`)
                     .then(resp => this.loadReport())
                     .catch(error => this.update({
                         error,

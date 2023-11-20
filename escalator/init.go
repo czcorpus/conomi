@@ -64,7 +64,12 @@ func (e *Escalator) HandleReport(report *general.Report) error {
 	lastEscalated := count.Escalated
 	count.Escalated = count.Critical > 0 || count.Warning > escalateWarningCount
 	if !lastEscalated && count.Escalated {
-		err := e.notifiers.SendNotifications(&general.Report{
+		rdb := engine.NewReportsDatabase(e.db)
+		err := rdb.EscalateGroup(report.GroupID)
+		if err != nil {
+			return err
+		}
+		err = e.notifiers.SendNotifications(&general.Report{
 			SourceID: report.SourceID,
 			Severity: general.SeverityLevelCritical,
 			Subject:  "Service escalated!",

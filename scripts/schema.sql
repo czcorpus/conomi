@@ -5,7 +5,7 @@ CREATE TABLE conomi_report_group (
     tag varchar(100),
     created datetime DEFAULT NOW() NOT NULL,
     resolved_by_user_id int DEFAULT NULL,
-    severity varchar(50) NOT NULL,
+    escalated tinyint(1) DEFAULT 0,
     PRIMARY KEY (id)
 );
 

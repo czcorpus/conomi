@@ -61,11 +61,11 @@ func (rdb *ReportsDatabase) selectActiveGroupID(sourceID general.SourceID) (int,
 }
 
 func (rdb *ReportsDatabase) createNewActiveGroup(sourceID general.SourceID) (int, error) {
-	sql1 := "INSERT INTO conomi_report_group (app, instance, tag, severity) VALUES (?,?,?,?)"
+	sql1 := "INSERT INTO conomi_report_group (app, instance, tag) VALUES (?,?,?)"
 	log.Debug().Str("sql", sql1).Msgf("going to INSERT conomi_report_group WHERE app = %s, instance = %s, tag = %s", sourceID.App, sourceID.Instance, sourceID.Tag)
 	instance := sql.NullString{String: sourceID.Instance, Valid: sourceID.Instance != ""}
 	tag := sql.NullString{String: sourceID.Tag, Valid: sourceID.Tag != ""}
-	result, err := rdb.db.Exec(sql1, sourceID.App, instance, tag, general.SeverityLevelInfo)
+	result, err := rdb.db.Exec(sql1, sourceID.App, instance, tag)
 	if err != nil {
 		return -1, err
 	}
@@ -166,6 +166,18 @@ func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) 
 	return entry.Export()
 }
 
+func (rdb *ReportsDatabase) EscalateGroup(groupID int) error {
+	sql1 := "UPDATE conomi_report_group AS crg " +
+		"SET crg.escalated = 1 " +
+		"WHERE crg.resolved_by_user_id IS NULL AND crg.id = ?"
+	log.Debug().Str("sql", sql1).Msgf("going to escalate group WHERE id = %d", groupID)
+	_, err := rdb.db.Exec(sql1, groupID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (rdb *ReportsDatabase) ResolveGroup(groupID int, userID int) error {
 	sql1 := "UPDATE conomi_report_group AS crg " +
 		"SET crg.resolved_by_user_id = ? " +
@@ -179,7 +191,7 @@ func (rdb *ReportsDatabase) ResolveGroup(groupID int, userID int) error {
 }
 
 func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
-	sql1 := "SELECT crg.app, crg.instance, crg.tag, " +
+	sql1 := "SELECT crg.app, crg.instance, crg.tag, crg.escalated, " +
 		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END), " +
 		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END), " +
 		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END) " +
@@ -196,7 +208,7 @@ func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
 	for rows.Next() {
 		count := &general.ReportCount{}
 		var instance, tag sql.NullString
-		err := rows.Scan(&count.SourceID.App, &instance, &tag, &count.Critical, &count.Warning, &count.Info)
+		err := rows.Scan(&count.SourceID.App, &instance, &tag, &count.Escalated, &count.Critical, &count.Warning, &count.Info)
 		if err != nil {
 			return nil, err
 		}
