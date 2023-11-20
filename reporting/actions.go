@@ -59,13 +59,14 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
-	reportID, err := rdb.InsertReport(report)
+	reportID, groupID, err := rdb.InsertReport(report)
 	if err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)
 		return
 	}
 	report.ID = reportID
+	report.GroupID = groupID
 	if err := a.e.HandleReport(&report); err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)
@@ -84,7 +85,7 @@ func (a *Actions) GetReports(ctx *gin.Context) {
 	instance := ctx.Request.URL.Query().Get("instance")
 	tag := ctx.Request.URL.Query().Get("tag")
 	rdb := engine.NewReportsDatabase(a.db)
-	reports, err := rdb.ListReports(app, instance, tag)
+	reports, err := rdb.ListReports(general.SourceID{App: app, Instance: instance, Tag: tag})
 	if err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)
@@ -93,39 +94,9 @@ func (a *Actions) GetReports(ctx *gin.Context) {
 	uniresp.WriteJSONResponse(ctx.Writer, reports)
 }
 
-func (a *Actions) ResolveReport(ctx *gin.Context) {
-	reportIDString := ctx.Param("reportId")
-	reportID, err := strconv.Atoi(reportIDString)
-	if err != nil {
-		uniresp.RespondWithErrorJSON(
-			ctx, err, http.StatusBadRequest)
-		return
-	}
-	userIDString := ctx.Request.URL.Query().Get("user_id")
-	userID, err := strconv.Atoi(userIDString)
-	if err != nil {
-		uniresp.RespondWithErrorJSON(
-			ctx, err, http.StatusBadRequest)
-		return
-	}
-	rdb := engine.NewReportsDatabase(a.db)
-	rows, err := rdb.ResolveReport(reportID, userID)
-	if err != nil {
-		uniresp.RespondWithErrorJSON(
-			ctx, err, http.StatusInternalServerError)
-		return
-	}
-	if err := a.e.Reload(); err != nil {
-		uniresp.RespondWithErrorJSON(
-			ctx, err, http.StatusInternalServerError)
-		return
-	}
-	uniresp.WriteJSONResponse(ctx.Writer, map[string]int{"resolved": rows})
-}
-
 func (a *Actions) ResolveGroup(ctx *gin.Context) {
-	reportIDString := ctx.Param("reportId")
-	reportID, err := strconv.Atoi(reportIDString)
+	groupIDString := ctx.Param("groupId")
+	groupID, err := strconv.Atoi(groupIDString)
 	if err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusBadRequest)
@@ -148,7 +119,7 @@ func (a *Actions) ResolveGroup(ctx *gin.Context) {
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
-	rows, err := rdb.ResolveGroup(reportID, intUserID)
+	err = rdb.ResolveGroup(groupID, intUserID)
 	if err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)
@@ -159,7 +130,7 @@ func (a *Actions) ResolveGroup(ctx *gin.Context) {
 			ctx, err, http.StatusInternalServerError)
 		return
 	}
-	uniresp.WriteJSONResponse(ctx.Writer, map[string]int{"resolved": rows})
+	uniresp.WriteJSONResponse(ctx.Writer, map[string]any{"ok": true})
 }
 
 func (a *Actions) GetReport(ctx *gin.Context) {

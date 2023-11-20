@@ -24,7 +24,7 @@
                     <td>{ state.report.created }</td>
                     <td>{ state.report.severity }</td>
                     <td if={ state.report.resolvedByUserId == -1 }>
-                        <button class="button button-small" onclick={ () => resolveReport(props.baseUrl, props.reportId) }>Resolve group</button>
+                        <button class="button button-small" onclick={ () => resolveGroup(props.baseUrl, state.report.groupId) }>Resolve group</button>
                     </td>
                     <td if={ state.report.resolvedByUserId != -1 }>{
                         state.report.resolvedByUserName
@@ -77,9 +77,9 @@
                 };
                 this.loadReport();
             },
-            resolveReport(baseUrl, reportId) {
+            resolveGroup(baseUrl, groupId) {
                 this.update({isBusy: true});
-                axios.post(`${baseUrl}/api/resolve-group/${reportId}`)
+                axios.post(`${baseUrl}/api/resolve-group/${groupId}`)
                     .then(resp => this.loadReport())
                     .catch(error => this.update({
                         error,

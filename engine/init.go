@@ -22,19 +22,31 @@ import (
 )
 
 func initDatabase(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS conomi_reports (
+	_, err := db.Exec(`CREATE TABLE conomi_report_group (
 		id int(11) NOT NULL AUTO_INCREMENT,
 		app varchar(50) NOT NULL,
 		instance varchar(50),
-		tag varchar(50),
+		tag varchar(100),
+		created datetime DEFAULT NOW() NOT NULL,
+		severity varchar(50) NOT NULL,
+		resolved_by_user_id int DEFAULT NULL,
+		PRIMARY KEY (id)
+	)`)
+
+	if err != nil {
+		return fmt.Errorf("failed to CREATE table conomi_report_group: %w", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE conomi_report (
+		id int(11) NOT NULL AUTO_INCREMENT,
+		report_group_id int(11) NOT NULL REFERENCES conomi_report_group(id),
 		severity varchar(50) NOT NULL,
 		subject text NOT NULL,
 		body text NOT NULL,
 		args json,
 		created datetime DEFAULT NOW() NOT NULL,
-		resolved_by_user_id int DEFAULT NULL,
 		PRIMARY KEY (id)
-	  )`)
+	)`)
 
 	if err != nil {
 		return fmt.Errorf("failed to CREATE table conomi_reports: %w", err)

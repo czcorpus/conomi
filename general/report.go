@@ -29,6 +29,7 @@ type SourceID struct {
 type Report struct {
 	SourceID           SourceID       `json:"sourceId"`
 	ID                 int            `json:"id"`
+	GroupID            int            `json:"groupId"`
 	Severity           SeverityLevel  `json:"severity"`
 	Subject            string         `json:"subject"`
 	Body               string         `json:"body"`

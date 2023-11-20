@@ -33,45 +33,98 @@ type ReportsDatabase struct {
 	ctx context.Context
 }
 
-func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, error) {
-	sql1 := "INSERT INTO conomi_reports (app, instance, tag, severity, subject, body, args, created) VALUES (?,?,?,?,?,?,?,?)"
-	entry, err := NewReportSQL(report)
-	if err != nil {
-		return -1, nil
+func (rdb *ReportsDatabase) selectActiveGroupID(sourceID general.SourceID) (int, error) {
+	whereClause, whereValues := make([]string, 0, 4), make([]any, 0, 3)
+	whereClause, whereValues = append(whereClause, "app = ?"), append(whereValues, sourceID.App)
+	if sourceID.Instance != "" {
+		whereClause, whereValues = append(whereClause, "instance = ?"), append(whereValues, sourceID.Instance)
+	} else {
+		whereClause = append(whereClause, "instance IS NULL")
 	}
-	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
-	result, err := rdb.db.Exec(sql1, entry.App, entry.Instance, entry.Tag, entry.Severity, entry.Subject, entry.Body, entry.Args, entry.Created)
+	if sourceID.Tag != "" {
+		whereClause, whereValues = append(whereClause, "tag = ?"), append(whereValues, sourceID.Tag)
+	} else {
+		whereClause = append(whereClause, "tag IS NULL")
+	}
+	whereClause = append(whereClause, "resolved_by_user_id IS NULL")
+
+	sql1 := "SELECT id FROM conomi_report_group " +
+		"WHERE " + strings.Join(whereClause, " AND ") + " LIMIT 1"
+
+	log.Debug().Str("sql", sql1).Msgf("going to SELECT conomi_report_group WHERE app = %s, instance = %s, tag = %s", sourceID.App, sourceID.Instance, sourceID.Tag)
+	var groupID int
+	row := rdb.db.QueryRow(sql1, whereValues...)
+	if err := row.Scan(&groupID); err != nil {
+		return 0, err
+	}
+	return groupID, nil
+}
+
+func (rdb *ReportsDatabase) createNewActiveGroup(sourceID general.SourceID) (int, error) {
+	sql1 := "INSERT INTO conomi_report_group (app, instance, tag, severity) VALUES (?,?,?,?)"
+	log.Debug().Str("sql", sql1).Msgf("going to INSERT conomi_report_group WHERE app = %s, instance = %s, tag = %s", sourceID.App, sourceID.Instance, sourceID.Tag)
+	instance := sql.NullString{String: sourceID.Instance, Valid: sourceID.Instance != ""}
+	tag := sql.NullString{String: sourceID.Tag, Valid: sourceID.Tag != ""}
+	result, err := rdb.db.Exec(sql1, sourceID.App, instance, tag, general.SeverityLevelInfo)
 	if err != nil {
 		return -1, err
+	}
+	groupID, err := result.LastInsertId()
+	if err != nil {
+		return -1, err
+	}
+	return int(groupID), nil
+}
+
+func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, int, error) {
+	groupID, err := rdb.selectActiveGroupID(report.SourceID)
+	if err == sql.ErrNoRows {
+		groupID, err = rdb.createNewActiveGroup(report.SourceID)
+		if err != nil {
+			return -1, -1, err
+		}
+	}
+
+	sql1 := "INSERT INTO conomi_report (report_group_id, severity, subject, body, args, created) VALUES (?,?,?,?,?,?)"
+	entry, err := NewReportSQL(report)
+	if err != nil {
+		return -1, -1, err
+	}
+	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
+	result, err := rdb.db.Exec(sql1, groupID, entry.Severity, entry.Subject, entry.Body, entry.Args, entry.Created)
+	if err != nil {
+		return -1, -1, err
 	}
 	reportID, err := result.LastInsertId()
 	if err != nil {
-		return -1, err
+		return -1, -1, err
 	}
-	return int(reportID), nil
+	return int(reportID), groupID, nil
 }
 
-func (rdb *ReportsDatabase) ListReports(app, instance, tag string) ([]*general.Report, error) {
+func (rdb *ReportsDatabase) ListReports(sourceID general.SourceID) ([]*general.Report, error) {
 	whereClause := make([]string, 0, 4)
 	whereValues := make([]any, 0, 3)
 	whereClause = append(whereClause, "resolved_by_user_id IS NULL")
-	if app != "" {
+	if sourceID.App != "" {
 		whereClause = append(whereClause, "app = ?")
-		whereValues = append(whereValues, app)
+		whereValues = append(whereValues, sourceID.App)
 	}
-	if instance != "" {
+	if sourceID.Instance != "" {
 		whereClause = append(whereClause, "instance = ?")
-		whereValues = append(whereValues, instance)
+		whereValues = append(whereValues, sourceID.Instance)
 	}
-	if tag != "" {
+	if sourceID.Tag != "" {
 		whereClause = append(whereClause, "tag = ?")
-		whereValues = append(whereValues, tag)
+		whereValues = append(whereValues, sourceID.Tag)
 	}
-	sql1 := "SELECT id, app, instance, tag, severity, subject, body, args, created, resolved_by_user_id " +
-		"FROM conomi_reports " +
+	sql1 := "SELECT cr.id, crg.id, crg.app, crg.instance, crg.tag, cr.severity, cr.subject, cr.body, cr.args, cr.created, crg.resolved_by_user_id, us.user " +
+		"FROM conomi_report_group AS crg " +
+		"JOIN conomi_report AS cr ON crg.id = cr.report_group_id " +
+		"LEFT JOIN user AS us ON resolved_by_user_id = us.id " +
 		"WHERE " + strings.Join(whereClause, " AND ") + " " +
 		"ORDER BY created DESC"
-	log.Debug().Str("sql", sql1).Msg("going to SELECT conomi_reports WHERE resolved_by_user_id IS NULL")
+	log.Debug().Str("sql", sql1).Msg("going to SELECT conomi_report WHERE resolved_by_user_id IS NULL")
 	rows, err := rdb.db.Query(sql1, whereValues...)
 	if err != nil {
 		return nil, err
@@ -79,7 +132,7 @@ func (rdb *ReportsDatabase) ListReports(app, instance, tag string) ([]*general.R
 	ans := make([]*general.Report, 0, 100)
 	for rows.Next() {
 		entry := &ReportSQL{}
-		err := rows.Scan(&entry.ID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID)
+		err := rows.Scan(&entry.ID, &entry.GroupID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID, &entry.ResolvedByUserName)
 		if err != nil {
 			return nil, err
 		}
@@ -96,15 +149,15 @@ func (rdb *ReportsDatabase) ListReports(app, instance, tag string) ([]*general.R
 }
 
 func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) {
-	sql1 := "SELECT cr.id, cr.app, cr.instance, cr.tag, cr.severity, cr.subject, cr.body, cr.args, cr.created, cr.resolved_by_user_id, us.user as resolved_by_user_name " +
-		"FROM conomi_reports AS cr " +
-		"LEFT JOIN user AS us " +
-		"ON cr.resolved_by_user_id = us.id " +
+	sql1 := "SELECT cr.id, crg.id, crg.app, crg.instance, crg.tag, cr.severity, cr.subject, cr.body, cr.args, cr.created, crg.resolved_by_user_id, us.user " +
+		"FROM conomi_report_group AS crg " +
+		"JOIN conomi_report AS cr ON crg.id = cr.report_group_id " +
+		"LEFT JOIN user AS us ON resolved_by_user_id = us.id " +
 		"WHERE cr.id = ? LIMIT 1"
 	log.Debug().Str("sql", sql1).Msgf("going to SELECT conomi_reports WHERE id = %d", reportID)
 	entry := &ReportSQL{}
 	row := rdb.db.QueryRow(sql1, reportID)
-	if err := row.Scan(&entry.ID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID, &entry.ResolvedByUserName); err != nil {
+	if err := row.Scan(&entry.ID, &entry.GroupID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID, &entry.ResolvedByUserName); err != nil {
 		return nil, err
 	}
 	if err := entry.Severity.Validate(); err != nil {
@@ -113,40 +166,28 @@ func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) 
 	return entry.Export()
 }
 
-func (rdb *ReportsDatabase) ResolveReport(reportID int, userID int) (int, error) {
-	sql1 := "UPDATE conomi_reports SET resolved_by_user_id = ? WHERE id = ? AND resolved_by_user_id IS NULL"
-	log.Debug().Str("sql", sql1).Msgf("going to resolve report WHERE id = %d", reportID)
-	result, err := rdb.db.Exec(sql1, userID, reportID)
+func (rdb *ReportsDatabase) ResolveGroup(groupID int, userID int) error {
+	sql1 := "UPDATE conomi_report_group AS crg " +
+		"SET crg.resolved_by_user_id = ? " +
+		"WHERE crg.resolved_by_user_id IS NULL AND crg.id = ?"
+	log.Debug().Str("sql", sql1).Msgf("going to resolve group WHERE id = %d", groupID)
+	_, err := rdb.db.Exec(sql1, userID, groupID)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	rows, err := result.RowsAffected()
-	return int(rows), err
-}
-
-func (rdb *ReportsDatabase) ResolveGroup(reportID int, userID int) (int, error) {
-	sql1 := "UPDATE conomi_reports AS upd " +
-		"INNER JOIN conomi_reports AS sel " +
-		"ON upd.app = sel.app AND upd.instance <=> sel.instance AND upd.tag <=> sel.tag AND sel.id = ? " +
-		"SET upd.resolved_by_user_id = ? " +
-		"WHERE upd.resolved_by_user_id IS NULL"
-	log.Debug().Str("sql", sql1).Msgf("going to resolve all group reports WHERE id = %d", reportID)
-	result, err := rdb.db.Exec(sql1, reportID, userID)
-	if err != nil {
-		return 0, err
-	}
-	rows, err := result.RowsAffected()
-	return int(rows), err
+	return nil
 }
 
 func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
-	sql1 := "SELECT app, instance, tag, " +
-		"SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END), " +
-		"SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END), " +
-		"SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END) " +
-		"FROM conomi_reports WHERE resolved_by_user_id IS NULL " +
-		"GROUP BY app, instance, tag ORDER BY app, instance, tag"
-	log.Debug().Str("sql", sql1).Msg("going to count conomi_reports WHERE resolved_by_user_id IS NULL")
+	sql1 := "SELECT crg.app, crg.instance, crg.tag, " +
+		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END), " +
+		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END), " +
+		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END) " +
+		"FROM conomi_report_group AS crg " +
+		"JOIN conomi_report AS cr ON crg.id = cr.report_group_id " +
+		"WHERE crg.resolved_by_user_id IS NULL " +
+		"GROUP BY crg.app, crg.instance, crg.tag ORDER BY crg.app, crg.instance, crg.tag"
+	log.Debug().Str("sql", sql1).Msg("going to count conomi_report WHERE resolved_by_user_id IS NULL")
 	rows, err := rdb.db.Query(sql1, general.SeverityLevelCritical, general.SeverityLevelWarning, general.SeverityLevelInfo)
 	if err != nil {
 		return nil, err
@@ -166,7 +207,7 @@ func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
 }
 
 func (rdb *ReportsDatabase) GetSources() ([]*general.SourceID, error) {
-	sql1 := "SELECT DISTINCT app, instance, tag FROM conomi_reports WHERE resolved_by_user_id IS NULL ORDER BY app, instance, tag"
+	sql1 := "SELECT DISTINCT app, instance, tag FROM conomi_report_group WHERE resolved_by_user_id IS NULL ORDER BY app, instance, tag"
 	log.Debug().Str("sql", sql1).Msg("going to get available filters")
 	rows, err := rdb.db.Query(sql1)
 	if err != nil {
