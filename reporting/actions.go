@@ -18,6 +18,7 @@ package reporting
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -36,6 +37,28 @@ type Actions struct {
 	db  *sql.DB
 	n   *notifiers.Notifiers
 	e   *escalator.Escalator
+}
+
+func (a *Actions) autoResolve(ctx *gin.Context, rdb *engine.ReportsDatabase, groupID int) error {
+	ctxUserID, exists := ctx.Get("userID")
+	if !exists {
+		return fmt.Errorf("User ID not found")
+	}
+	userID, ok := ctxUserID.(string)
+	if !ok {
+		return fmt.Errorf("User ID has to be string number")
+	}
+	intUserID, err := strconv.Atoi(userID)
+	if err != nil {
+		return err
+	}
+	if err := rdb.ResolveGroup(groupID, intUserID); err != nil {
+		return err
+	}
+	if err := a.e.Reload(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (a *Actions) PostReport(ctx *gin.Context) {
@@ -67,6 +90,11 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 	}
 	report.ID = reportID
 	report.GroupID = groupID
+	if report.Severity == general.SeverityLevelRecovery {
+		if err := a.autoResolve(ctx, rdb, groupID); err != nil {
+			log.Error().AnErr("error", err).Msg("auto resolve failed")
+		}
+	}
 	if err := a.e.HandleReport(&report); err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)
