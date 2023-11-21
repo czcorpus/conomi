@@ -42,11 +42,11 @@ type Actions struct {
 func (a *Actions) autoResolve(ctx *gin.Context, rdb *engine.ReportsDatabase, groupID int) error {
 	ctxUserID, exists := ctx.Get("userID")
 	if !exists {
-		return fmt.Errorf("User ID not found")
+		return fmt.Errorf("user ID not found")
 	}
 	userID, ok := ctxUserID.(string)
 	if !ok {
-		return fmt.Errorf("User ID has to be string number")
+		return fmt.Errorf("user ID has to be string number")
 	}
 	intUserID, err := strconv.Atoi(userID)
 	if err != nil {
