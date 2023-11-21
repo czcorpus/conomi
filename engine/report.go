@@ -27,6 +27,7 @@ import (
 // structure for simpler record data transformation between sql and go
 type ReportSQL struct {
 	ID                 int
+	GroupID            int
 	App                string
 	Instance           sql.NullString
 	Tag                sql.NullString
@@ -58,6 +59,7 @@ func (r *ReportSQL) Export() (*general.Report, error) {
 			Tag:      r.Tag.String,
 		},
 		ID:                 r.ID,
+		GroupID:            r.GroupID,
 		Severity:           r.Severity,
 		Subject:            r.Subject,
 		Body:               r.Body,
@@ -80,6 +82,7 @@ func NewReportSQL(r general.Report) (*ReportSQL, error) {
 	}
 	return &ReportSQL{
 		ID:               r.ID,
+		GroupID:          r.GroupID,
 		App:              r.SourceID.App,
 		Instance:         sql.NullString{Valid: r.SourceID.Instance != "", String: r.SourceID.Instance},
 		Tag:              sql.NullString{Valid: r.SourceID.Tag != "", String: r.SourceID.Tag},

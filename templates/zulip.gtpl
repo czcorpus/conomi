@@ -5,6 +5,7 @@
 {{ if and .Info.PublicPath .Report.ID }}
 ```spoiler Report actions
 [Inspect report]({{ .Info.PublicPath }}/ui/detail?id={{ .Report.ID }})
+[List group]({{ .Info.PublicPath }}/ui/list?app={{ .Report.SourceID.App }}&instance={{ .Report.SourceID.Instance }}&tag={{ .Report.SourceID.Tag }})
 ```
 {{ end }}
 
