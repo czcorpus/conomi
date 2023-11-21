@@ -18,12 +18,12 @@ package reporting
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/czcorpus/cnc-gokit/uniresp"
+	"github.com/czcorpus/conomi/auth"
 	"github.com/czcorpus/conomi/engine"
 	"github.com/czcorpus/conomi/escalator"
 	"github.com/czcorpus/conomi/general"
@@ -40,19 +40,11 @@ type Actions struct {
 }
 
 func (a *Actions) autoResolve(ctx *gin.Context, rdb *engine.ReportsDatabase, groupID int) error {
-	ctxUserID, exists := ctx.Get("userID")
-	if !exists {
-		return fmt.Errorf("user ID not found")
-	}
-	userID, ok := ctxUserID.(string)
-	if !ok {
-		return fmt.Errorf("user ID has to be string number")
-	}
-	intUserID, err := strconv.Atoi(userID)
+	userID, err := auth.GetUserID(ctx)
 	if err != nil {
 		return err
 	}
-	if err := rdb.ResolveGroup(groupID, intUserID); err != nil {
+	if err := rdb.ResolveGroup(groupID, userID); err != nil {
 		return err
 	}
 	if err := a.e.Reload(); err != nil {
@@ -109,11 +101,13 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 }
 
 func (a *Actions) GetReports(ctx *gin.Context) {
-	app := ctx.Request.URL.Query().Get("app")
-	instance := ctx.Request.URL.Query().Get("instance")
-	tag := ctx.Request.URL.Query().Get("tag")
+	sourceID := general.SourceID{
+		App:      ctx.Request.URL.Query().Get("app"),
+		Instance: ctx.Request.URL.Query().Get("instance"),
+		Tag:      ctx.Request.URL.Query().Get("tag"),
+	}
 	rdb := engine.NewReportsDatabase(a.db)
-	reports, err := rdb.ListReports(general.SourceID{App: app, Instance: instance, Tag: tag})
+	reports, err := rdb.ListReports(sourceID)
 	if err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)
@@ -130,24 +124,14 @@ func (a *Actions) ResolveGroup(ctx *gin.Context) {
 			ctx, err, http.StatusBadRequest)
 		return
 	}
-	ctxUserID, exists := ctx.Get("userID")
-	if !exists {
-		ctx.AbortWithStatus(http.StatusForbidden)
-		return
-	}
-	userID, ok := ctxUserID.(string)
-	if !ok {
-		ctx.AbortWithStatus(http.StatusForbidden)
-		return
-	}
-	intUserID, err := strconv.Atoi(userID)
+	userID, err := auth.GetUserID(ctx)
 	if err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)
 		return
 	}
 	rdb := engine.NewReportsDatabase(a.db)
-	err = rdb.ResolveGroup(groupID, intUserID)
+	err = rdb.ResolveGroup(groupID, userID)
 	if err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)
