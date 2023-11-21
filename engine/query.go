@@ -131,7 +131,7 @@ func (rdb *ReportsDatabase) ListReports(sourceID general.SourceID) ([]*general.R
 	}
 	ans := make([]*general.Report, 0, 100)
 	for rows.Next() {
-		entry := &ReportSQL{}
+		entry := &reportSQL{}
 		err := rows.Scan(&entry.ID, &entry.GroupID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID, &entry.ResolvedByUserName)
 		if err != nil {
 			return nil, err
@@ -155,7 +155,7 @@ func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) 
 		"LEFT JOIN user AS us ON resolved_by_user_id = us.id " +
 		"WHERE cr.id = ? LIMIT 1"
 	log.Debug().Str("sql", sql1).Msgf("going to SELECT conomi_reports WHERE id = %d", reportID)
-	entry := &ReportSQL{}
+	entry := &reportSQL{}
 	row := rdb.db.QueryRow(sql1, reportID)
 	if err := row.Scan(&entry.ID, &entry.GroupID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID, &entry.ResolvedByUserName); err != nil {
 		return nil, err

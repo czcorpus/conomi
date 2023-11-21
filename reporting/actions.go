@@ -33,10 +33,11 @@ import (
 )
 
 type Actions struct {
-	loc *time.Location
-	db  *sql.DB
-	n   *notifiers.Notifiers
-	e   *escalator.Escalator
+	loc        *time.Location
+	db         *sql.DB
+	n          *notifiers.Notifiers
+	e          *escalator.Escalator
+	selfReport chan error
 }
 
 func (a *Actions) autoResolve(ctx *gin.Context, rdb *engine.ReportsDatabase, groupID int) error {
@@ -53,9 +54,34 @@ func (a *Actions) autoResolve(ctx *gin.Context, rdb *engine.ReportsDatabase, gro
 	return nil
 }
 
+func (a *Actions) handleReport(ctx *gin.Context, report *general.Report) error {
+	rdb := engine.NewReportsDatabase(a.db)
+	reportID, groupID, err := rdb.InsertReport(*report)
+	if err != nil {
+		return err
+	}
+	report.ID = reportID
+	report.GroupID = groupID
+
+	// ctx == nil for self self reporting
+	if ctx != nil && report.Severity == general.SeverityLevelRecovery {
+		if err := a.autoResolve(ctx, rdb, groupID); err != nil {
+			// must not be sent in self reporting! (infinite loop)
+			a.selfReport <- err
+			log.Error().AnErr("error", err).Msg("auto resolve failed")
+		}
+	}
+
+	if err := a.e.HandleEscalation(report); err != nil {
+		return err
+	}
+	return a.n.SendNotifications(report)
+}
+
 func (a *Actions) PostReport(ctx *gin.Context) {
 	report := general.Report{ResolvedByUserID: -1, Created: time.Now().In(a.loc)}
 	if err := ctx.ShouldBindJSON(&report); err != nil {
+		a.selfReport <- err
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusBadRequest)
 		return
@@ -69,30 +95,13 @@ func (a *Actions) PostReport(ctx *gin.Context) {
 		Any("args", report.Args).
 		Msg("Obtained report via HTTP API")
 	if err := report.Severity.Validate(); err != nil {
+		a.selfReport <- err
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusBadRequest)
 		return
 	}
-	rdb := engine.NewReportsDatabase(a.db)
-	reportID, groupID, err := rdb.InsertReport(report)
-	if err != nil {
-		uniresp.RespondWithErrorJSON(
-			ctx, err, http.StatusInternalServerError)
-		return
-	}
-	report.ID = reportID
-	report.GroupID = groupID
-	if report.Severity == general.SeverityLevelRecovery {
-		if err := a.autoResolve(ctx, rdb, groupID); err != nil {
-			log.Error().AnErr("error", err).Msg("auto resolve failed")
-		}
-	}
-	if err := a.e.HandleReport(&report); err != nil {
-		uniresp.RespondWithErrorJSON(
-			ctx, err, http.StatusInternalServerError)
-		return
-	}
-	if err := a.n.SendNotifications(&report); err != nil {
+	if err := a.handleReport(ctx, &report); err != nil {
+		a.selfReport <- err
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)
 		return
@@ -203,11 +212,35 @@ func (a *Actions) GetReportCounts(ctx *gin.Context) {
 	uniresp.WriteJSONResponse(ctx.Writer, counts)
 }
 
-func NewActions(loc *time.Location, db *sql.DB, n *notifiers.Notifiers, e *escalator.Escalator) *Actions {
-	return &Actions{
-		loc: loc,
-		db:  db,
-		n:   n,
-		e:   e,
+func (a *Actions) RunSelfReporter() {
+	for errMsg := range a.selfReport {
+		report := general.Report{
+			SourceID: general.SourceID{
+				App: "conomi",
+			},
+			Severity: general.SeverityLevelWarning,
+			Subject:  "Conomi self report",
+			Body:     errMsg.Error(),
+			Created:  time.Now().In(a.loc),
+		}
+		if err := a.handleReport(nil, &report); err != nil {
+			log.Err(err).Msg("self report error")
+		}
 	}
+}
+
+func (a *Actions) Close() {
+	close(a.selfReport)
+}
+
+func NewActions(loc *time.Location, db *sql.DB, n *notifiers.Notifiers, e *escalator.Escalator) *Actions {
+	actions := &Actions{
+		loc:        loc,
+		db:         db,
+		n:          n,
+		e:          e,
+		selfReport: make(chan error),
+	}
+	go actions.RunSelfReporter()
+	return actions
 }

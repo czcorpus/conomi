@@ -42,7 +42,7 @@ func (e *Escalator) Set(count *general.ReportCount) {
 	e.counts[key] = count
 }
 
-func (e *Escalator) HandleReport(report *general.Report) error {
+func (e *Escalator) HandleEscalation(report *general.Report) error {
 	key := e.makeKey(report.SourceID)
 	count, ok := e.counts[key]
 	if !ok {

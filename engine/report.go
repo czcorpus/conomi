@@ -25,7 +25,7 @@ import (
 )
 
 // structure for simpler record data transformation between sql and go
-type ReportSQL struct {
+type reportSQL struct {
 	ID                 int
 	GroupID            int
 	App                string
@@ -40,7 +40,7 @@ type ReportSQL struct {
 	ResolvedByUserName sql.NullString
 }
 
-func (r *ReportSQL) Export() (*general.Report, error) {
+func (r *reportSQL) Export() (*general.Report, error) {
 	var args map[string]any = nil
 	if r.Args.Valid {
 		err := json.Unmarshal([]byte(r.Args.String), &args)
@@ -70,7 +70,7 @@ func (r *ReportSQL) Export() (*general.Report, error) {
 	}, nil
 }
 
-func NewReportSQL(r general.Report) (*ReportSQL, error) {
+func NewReportSQL(r general.Report) (*reportSQL, error) {
 	args := sql.NullString{Valid: false, String: ""}
 	if r.Args != nil {
 		value, err := json.Marshal(r.Args)
@@ -80,7 +80,7 @@ func NewReportSQL(r general.Report) (*ReportSQL, error) {
 		args.Valid = true
 		args.String = string(value)
 	}
-	return &ReportSQL{
+	return &reportSQL{
 		ID:               r.ID,
 		GroupID:          r.GroupID,
 		App:              r.SourceID.App,
