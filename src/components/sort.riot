@@ -1,0 +1,16 @@
+<sort>
+    <span class="text" onclick={() => props.handler(props.value)}>
+        <slot/>
+        <span if={props.sort === props.value}>
+            <span if={props.asc === 1}>&#9650;</span>
+            <span if={props.asc === -1}>&#9660;</span>
+        </span>
+    </span>
+
+    <style>
+        .text {
+            color: #b359e9;
+            cursor: pointer;
+        }
+    </style>
+</sort>

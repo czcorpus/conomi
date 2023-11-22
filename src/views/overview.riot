@@ -7,67 +7,39 @@
                 <tr>
                     <th class="col-mark"></th>
                     <th class="col-source">
-                        <a href="" onclick={() => this.sortCounts("source") }>
+                        <sort handler={this.sortCounts} value="source" sort={state.sort} asc={state.asc}>
                             Source
-                            <span if={ state.sort === "source" }>
-                                <span if={ state.asc === 1 }>&#9650;</span>
-                                <span if={ state.asc === -1 }>&#9660;</span>
-                            </span>
-                        </a>
+                        </sort>
                     </th>
                     <th>
-                        <a href="" onclick={() => this.sortCounts("created") }>
+                        <sort handler={this.sortCounts} value="created" sort={state.sort} asc={state.asc}>
                             Created
-                            <span if={ state.sort === "created" }>
-                                <span if={ state.asc === 1 }>&#9650;</span>
-                                <span if={ state.asc === -1 }>&#9660;</span>
-                            </span>
-                        </a>
+                        </sort>
                     </th>
                     <th>
-                        <a href="" onclick={() => this.sortCounts("last") }>
+                        <sort handler={this.sortCounts} value="last" sort={state.sort} asc={state.asc}>
                             Last
-                            <span if={ state.sort === "last" }>
-                                <span if={ state.asc === 1 }>&#9650;</span>
-                                <span if={ state.asc === -1 }>&#9660;</span>
-                            </span>
-                        </a>
+                        </sort>
                     </th>
                     <th>
-                        <a href="" onclick={() => this.sortCounts("recent") }>
+                        <sort handler={this.sortCounts} value="recent" sort={state.sort} asc={state.asc}>
                             Recent
-                            <span if={ state.sort === "recent" }>
-                                <span if={ state.asc === 1 }>&#9650;</span>
-                                <span if={ state.asc === -1 }>&#9660;</span>
-                            </span>
-                        </a>
+                        </sort>
                     </th>
                     <th>
-                        <a href="" onclick={() => this.sortCounts("critical") }>
+                        <sort handler={this.sortCounts} value="critical" sort={state.sort} asc={state.asc}>
                             Critical
-                            <span if={ state.sort === "critical" }>
-                                <span if={ state.asc === 1 }>&#9650;</span>
-                                <span if={ state.asc === -1 }>&#9660;</span>
-                            </span>
-                        </a>
+                        </sort>
                     </th>
                     <th>
-                        <a href="" onclick={() => this.sortCounts("warning") }>
+                        <sort handler={this.sortCounts} value="warning" sort={state.sort} asc={state.asc}>
                             Warning
-                            <span if={ state.sort === "warning" }>
-                                <span if={ state.asc === 1 }>&#9650;</span>
-                                <span if={ state.asc === -1 }>&#9660;</span>
-                            </span>
-                        </a>
+                        </sort>
                     </th>
                     <th>
-                        <a href="" onclick={() => this.sortCounts("info") }>
+                        <sort handler={this.sortCounts} value="info" sort={state.sort} asc={state.asc}>
                             Info
-                            <span if={ state.sort === "info" }>
-                                <span if={ state.asc === 1 }>&#9650;</span>
-                                <span if={ state.asc === -1 }>&#9660;</span>
-                            </span>
-                        </a>
+                        </sort>
                     </th>
                 </tr>
             </thead>
@@ -94,8 +66,12 @@
 
     <script>
         import axios from 'axios';
+        import Sort from '../components/sort.riot';
 
         export default {
+            components: {
+                sort: Sort,
+            },
             onBeforeMount(props, state) {
                 this.state.counts = null;
                 this.state.sort = null;
