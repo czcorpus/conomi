@@ -39,10 +39,13 @@ type Report struct {
 	ResolvedByUserName string         `json:"resolvedByUserName"`
 }
 
-type ReportCount struct {
-	SourceID  SourceID `json:"sourceId"`
-	Critical  int      `json:"critical"`
-	Warning   int      `json:"warning"`
-	Info      int      `json:"info"`
-	Escalated bool     `json:"escalated"`
+type ReportOverview struct {
+	SourceID  SourceID  `json:"sourceId"`
+	Escalated bool      `json:"escalated"`
+	Critical  int       `json:"critical"`
+	Warning   int       `json:"warning"`
+	Info      int       `json:"info"`
+	Recent    int       `json:"recent"`
+	Created   time.Time `json:"created"`
+	Last      time.Time `json:"last"`
 }

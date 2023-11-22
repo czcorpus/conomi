@@ -28,7 +28,7 @@ import (
 const escalateWarningCount = 10
 
 type Escalator struct {
-	counts    map[string]*general.ReportCount
+	counts    map[string]*general.ReportOverview
 	db        *sql.DB
 	notifiers *notifiers.Notifiers
 }
@@ -37,7 +37,7 @@ func (e *Escalator) makeKey(sourceID general.SourceID) string {
 	return fmt.Sprintf("%s:%s:%s", sourceID.App, sourceID.Instance, sourceID.Tag)
 }
 
-func (e *Escalator) Set(count *general.ReportCount) {
+func (e *Escalator) Set(count *general.ReportOverview) {
 	key := e.makeKey(count.SourceID)
 	e.counts[key] = count
 }
@@ -46,7 +46,7 @@ func (e *Escalator) HandleEscalation(report *general.Report) error {
 	key := e.makeKey(report.SourceID)
 	count, ok := e.counts[key]
 	if !ok {
-		count = &general.ReportCount{SourceID: report.SourceID}
+		count = &general.ReportOverview{SourceID: report.SourceID}
 		e.counts[key] = count
 	}
 
@@ -89,11 +89,11 @@ func (e *Escalator) HandleEscalation(report *general.Report) error {
 
 func (e *Escalator) Reload() error {
 	rdb := engine.NewReportsDatabase(e.db)
-	counts, err := rdb.GetReportCounts()
+	counts, err := rdb.GetOverview()
 	if err != nil {
 		return err
 	}
-	e.counts = make(map[string]*general.ReportCount)
+	e.counts = make(map[string]*general.ReportOverview)
 	for _, count := range counts {
 		e.Set(count)
 	}

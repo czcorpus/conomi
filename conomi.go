@@ -84,7 +84,7 @@ func runApiServer(
 	api.POST("/resolve/:groupId", r.ResolveGroup)
 	api.GET("/reports", r.GetReports)
 	api.GET("/sources", r.GetSources)
-	api.GET("/counts", r.GetReportCounts)
+	api.GET("/overview", r.GetOverview)
 
 	engine.LoadHTMLFiles(filepath.Join(conf.ClientDistDirPath, "index.html"))
 	ui := engine.Group("/ui")
