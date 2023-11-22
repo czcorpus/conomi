@@ -29,11 +29,27 @@ func Authenticate(conf *AuthConf, publicPath string) gin.HandlerFunc {
 			ctx.Set("authenticated", true)
 			ctx.Next()
 		}
+	} else if conf.RemoteUserHeader != "" {
+		return func(ctx *gin.Context) {
+			ctx.Set("authenticated", false)
+			remoteUser := ctx.Request.Header.Get(conf.RemoteUserHeader)
+			if remoteUser != "" {
+				ctx.Set("authenticated", true)
+				ctx.Set("userName", remoteUser)
+			}
+			ctx.Next()
+		}
 	}
 	return func(ctx *gin.Context) {
 		ctx.Set("authenticated", false)
-		cookieSID, _ := ctx.Cookie(conf.CookieSID)
-		cookieAt, _ := ctx.Cookie(conf.CookieAt)
+		cookieSID, err := ctx.Cookie(conf.CookieSID)
+		if err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, err)
+		}
+		cookieAt, err := ctx.Cookie(conf.CookieAt)
+		if err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, err)
+		}
 		cookieRmme, err := ctx.Cookie(conf.CookieRmme)
 		if err != nil {
 			cookieRmme = "0"
@@ -70,14 +86,13 @@ func Authenticate(conf *AuthConf, publicPath string) gin.HandlerFunc {
 			ctx.AbortWithError(http.StatusInternalServerError, err)
 		}
 
-		var data map[string]interface{}
-		err = json.Unmarshal(respBody, &data)
-		if err != nil {
+		var toolbarData map[string]interface{}
+		if err := json.Unmarshal(respBody, &toolbarData); err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, err)
 		}
-		ctx.Set("toolbar", data)
+		ctx.Set("toolbar", toolbarData)
 
-		user, ok := data["user"].(map[string]interface{})
+		user, ok := toolbarData["user"].(map[string]interface{})
 		if ok {
 			userID, ok := user["id"]
 			if ok {

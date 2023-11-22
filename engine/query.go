@@ -245,6 +245,18 @@ func (rdb *ReportsDatabase) GetSources() ([]*general.SourceID, error) {
 	return ans, nil
 }
 
+func (rdb *ReportsDatabase) GetUserID(userName string) (int, error) {
+	sql1 := "SELECT id FROM user WHERE user = ? LIMIT 1"
+	log.Debug().Str("sql", sql1).Msg("going to get user id from name")
+	row := rdb.db.QueryRow(sql1, userName)
+	var userID int
+	err := row.Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
+}
+
 func NewReportsDatabase(db *sql.DB) *ReportsDatabase {
 	return &ReportsDatabase{
 		db:  db,
