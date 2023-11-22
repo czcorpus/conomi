@@ -56,16 +56,13 @@ func (a *Actions) autoResolve(ctx *gin.Context, rdb *engine.ReportsDatabase, gro
 
 func (a *Actions) handleReport(ctx *gin.Context, report *general.Report) error {
 	rdb := engine.NewReportsDatabase(a.db)
-	reportID, groupID, err := rdb.InsertReport(*report)
-	if err != nil {
+	if err := rdb.InsertReport(report); err != nil {
 		return err
 	}
-	report.ID = reportID
-	report.GroupID = groupID
 
 	// ctx == nil for self self reporting
 	if ctx != nil && report.Severity == general.SeverityLevelRecovery {
-		if err := a.autoResolve(ctx, rdb, groupID); err != nil {
+		if err := a.autoResolve(ctx, rdb, report.GroupID); err != nil {
 			// must not be sent in self reporting! (infinite loop)
 			a.selfReport <- err
 			log.Error().AnErr("error", err).Msg("auto resolve failed")
@@ -196,9 +193,9 @@ func (a *Actions) GetSources(ctx *gin.Context) {
 	uniresp.WriteJSONResponse(ctx.Writer, filters)
 }
 
-func (a *Actions) GetReportCounts(ctx *gin.Context) {
+func (a *Actions) GetOverview(ctx *gin.Context) {
 	rdb := engine.NewReportsDatabase(a.db)
-	counts, err := rdb.GetReportCounts()
+	counts, err := rdb.GetOverview()
 	if err != nil {
 		if err == sql.ErrNoRows {
 			uniresp.RespondWithErrorJSON(
@@ -214,7 +211,7 @@ func (a *Actions) GetReportCounts(ctx *gin.Context) {
 
 func (a *Actions) RunSelfReporter() {
 	for errMsg := range a.selfReport {
-		report := general.Report{
+		report := &general.Report{
 			SourceID: general.SourceID{
 				App: "conomi",
 			},
@@ -223,7 +220,7 @@ func (a *Actions) RunSelfReporter() {
 			Body:     errMsg.Error(),
 			Created:  time.Now().In(a.loc),
 		}
-		if err := a.handleReport(nil, &report); err != nil {
+		if err := a.handleReport(nil, report); err != nil {
 			log.Err(err).Msg("self report error")
 		}
 	}

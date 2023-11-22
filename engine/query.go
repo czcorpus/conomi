@@ -33,16 +33,16 @@ type ReportsDatabase struct {
 	ctx context.Context
 }
 
-func (rdb *ReportsDatabase) selectActiveGroupID(sourceID general.SourceID) (int, error) {
+func (rdb *ReportsDatabase) updateGroupID(report *general.Report) error {
 	whereClause, whereValues := make([]string, 0, 4), make([]any, 0, 3)
-	whereClause, whereValues = append(whereClause, "app = ?"), append(whereValues, sourceID.App)
-	if sourceID.Instance != "" {
-		whereClause, whereValues = append(whereClause, "instance = ?"), append(whereValues, sourceID.Instance)
+	whereClause, whereValues = append(whereClause, "app = ?"), append(whereValues, report.SourceID.App)
+	if report.SourceID.Instance != "" {
+		whereClause, whereValues = append(whereClause, "instance = ?"), append(whereValues, report.SourceID.Instance)
 	} else {
 		whereClause = append(whereClause, "instance IS NULL")
 	}
-	if sourceID.Tag != "" {
-		whereClause, whereValues = append(whereClause, "tag = ?"), append(whereValues, sourceID.Tag)
+	if report.SourceID.Tag != "" {
+		whereClause, whereValues = append(whereClause, "tag = ?"), append(whereValues, report.SourceID.Tag)
 	} else {
 		whereClause = append(whereClause, "tag IS NULL")
 	}
@@ -51,55 +51,54 @@ func (rdb *ReportsDatabase) selectActiveGroupID(sourceID general.SourceID) (int,
 	sql1 := "SELECT id FROM conomi_report_group " +
 		"WHERE " + strings.Join(whereClause, " AND ") + " LIMIT 1"
 
-	log.Debug().Str("sql", sql1).Msgf("going to SELECT conomi_report_group WHERE app = %s, instance = %s, tag = %s", sourceID.App, sourceID.Instance, sourceID.Tag)
-	var groupID int
+	log.Debug().Str("sql", sql1).Msgf("going to SELECT conomi_report_group WHERE app = %s, instance = %s, tag = %s", report.SourceID.App, report.SourceID.Instance, report.SourceID.Tag)
 	row := rdb.db.QueryRow(sql1, whereValues...)
-	if err := row.Scan(&groupID); err != nil {
-		return 0, err
-	}
-	return groupID, nil
+	return row.Scan(&report.GroupID)
 }
 
-func (rdb *ReportsDatabase) createNewActiveGroup(sourceID general.SourceID) (int, error) {
-	sql1 := "INSERT INTO conomi_report_group (app, instance, tag) VALUES (?,?,?)"
-	log.Debug().Str("sql", sql1).Msgf("going to INSERT conomi_report_group WHERE app = %s, instance = %s, tag = %s", sourceID.App, sourceID.Instance, sourceID.Tag)
-	instance := sql.NullString{String: sourceID.Instance, Valid: sourceID.Instance != ""}
-	tag := sql.NullString{String: sourceID.Tag, Valid: sourceID.Tag != ""}
-	result, err := rdb.db.Exec(sql1, sourceID.App, instance, tag)
+func (rdb *ReportsDatabase) assignNewGroup(report *general.Report) error {
+	sql1 := "INSERT INTO conomi_report_group (app, instance, tag, created) VALUES (?,?,?,?)"
+	log.Debug().Str("sql", sql1).Msgf("going to INSERT conomi_report_group WHERE app = %s, instance = %s, tag = %s", report.SourceID.App, report.SourceID.Instance, report.SourceID.Tag)
+	instance := sql.NullString{String: report.SourceID.Instance, Valid: report.SourceID.Instance != ""}
+	tag := sql.NullString{String: report.SourceID.Tag, Valid: report.SourceID.Tag != ""}
+	result, err := rdb.db.Exec(sql1, report.SourceID.App, instance, tag, report.Created)
 	if err != nil {
-		return -1, err
+		return err
 	}
 	groupID, err := result.LastInsertId()
 	if err != nil {
-		return -1, err
+		return err
 	}
-	return int(groupID), nil
+	report.GroupID = int(groupID)
+	return nil
 }
 
-func (rdb *ReportsDatabase) InsertReport(report general.Report) (int, int, error) {
-	groupID, err := rdb.selectActiveGroupID(report.SourceID)
+func (rdb *ReportsDatabase) InsertReport(report *general.Report) error {
+	err := rdb.updateGroupID(report)
 	if err == sql.ErrNoRows {
-		groupID, err = rdb.createNewActiveGroup(report.SourceID)
-		if err != nil {
-			return -1, -1, err
+		if err := rdb.assignNewGroup(report); err != nil {
+			return err
 		}
+	} else if err != nil {
+		return err
 	}
 
 	sql1 := "INSERT INTO conomi_report (report_group_id, severity, subject, body, args, created) VALUES (?,?,?,?,?,?)"
 	entry, err := NewReportSQL(report)
 	if err != nil {
-		return -1, -1, err
+		return err
 	}
 	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
-	result, err := rdb.db.Exec(sql1, groupID, entry.Severity, entry.Subject, entry.Body, entry.Args, entry.Created)
+	result, err := rdb.db.Exec(sql1, entry.GroupID, entry.Severity, entry.Subject, entry.Body, entry.Args, entry.Created)
 	if err != nil {
-		return -1, -1, err
+		return err
 	}
 	reportID, err := result.LastInsertId()
 	if err != nil {
-		return -1, -1, err
+		return err
 	}
-	return int(reportID), groupID, nil
+	report.ID = int(reportID)
+	return nil
 }
 
 func (rdb *ReportsDatabase) ListReports(sourceID general.SourceID) ([]*general.Report, error) {
@@ -190,12 +189,13 @@ func (rdb *ReportsDatabase) ResolveGroup(groupID int, userID int) error {
 	return nil
 }
 
-func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
+func (rdb *ReportsDatabase) GetOverview() ([]*general.ReportOverview, error) {
 	sql1 := "SELECT crg.app, crg.instance, crg.tag, crg.escalated, " +
 		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END), " +
 		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END), " +
 		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END), " +
-		"SUM(CASE WHEN (cr.created > NOW() - INTERVAL 1 DAY) THEN 1 ELSE 0 END) AS recent " +
+		"SUM(CASE WHEN (cr.created > NOW() - INTERVAL 1 DAY) THEN 1 ELSE 0 END) AS recent, " +
+		"crg.created, MAX(cr.created) " +
 		"FROM conomi_report_group AS crg " +
 		"JOIN conomi_report AS cr ON crg.id = cr.report_group_id " +
 		"WHERE crg.resolved_by_user_id IS NULL " +
@@ -205,11 +205,11 @@ func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
 	if err != nil {
 		return nil, err
 	}
-	ans := make([]*general.ReportCount, 0, 100)
+	ans := make([]*general.ReportOverview, 0, 100)
 	for rows.Next() {
-		count := &general.ReportCount{}
+		count := &general.ReportOverview{}
 		var instance, tag sql.NullString
-		err := rows.Scan(&count.SourceID.App, &instance, &tag, &count.Escalated, &count.Critical, &count.Warning, &count.Info, &count.Recent)
+		err := rows.Scan(&count.SourceID.App, &instance, &tag, &count.Escalated, &count.Critical, &count.Warning, &count.Info, &count.Recent, &count.Created, &count.Last)
 		if err != nil {
 			return nil, err
 		}

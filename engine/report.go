@@ -70,7 +70,7 @@ func (r *reportSQL) Export() (*general.Report, error) {
 	}, nil
 }
 
-func NewReportSQL(r general.Report) (*reportSQL, error) {
+func NewReportSQL(r *general.Report) (*reportSQL, error) {
 	args := sql.NullString{Valid: false, String: ""}
 	if r.Args != nil {
 		value, err := json.Marshal(r.Args)

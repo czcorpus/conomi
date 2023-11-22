@@ -6,6 +6,8 @@
             <thead>
                 <tr>
                     <th>Source</th>
+                    <th>Created</th>
+                    <th>Last</th>
                     <th>Recent</th>
                     <th>Critical</th>
                     <th>Warning</th>
@@ -20,6 +22,8 @@
                         </a>
                         <img class="mark" if={ count.escalated } src="{props.baseUrl}/ui/assets/img/mark.png">
                     </td>
+                    <td class="created">{ count.created }</td>
+                    <td class="last">{ count.last }</td>
                     <td class="recent">{ count.recent }</td>
                     <td class="critical">{ count.critical }</td>
                     <td class="warning">{ count.warning }</td>
@@ -36,7 +40,7 @@
             onBeforeMount(props, state) {
                 this.state.counts = null;
                 this.state.error = null;
-                axios.get(props.baseUrl+"/api/counts")
+                axios.get(props.baseUrl+"/api/overview")
                     .then(resp => this.update({counts: resp.data}))
                     .catch(error => this.update({error}))
             },
