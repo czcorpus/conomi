@@ -45,4 +45,5 @@ type ReportCount struct {
 	Warning   int      `json:"warning"`
 	Info      int      `json:"info"`
 	Escalated bool     `json:"escalated"`
+	Recent    int      `json:"recent"`
 }

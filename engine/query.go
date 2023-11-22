@@ -194,11 +194,12 @@ func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
 	sql1 := "SELECT crg.app, crg.instance, crg.tag, crg.escalated, " +
 		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END), " +
 		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END), " +
-		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END) " +
+		"SUM(CASE WHEN cr.severity = ? THEN 1 ELSE 0 END), " +
+		"SUM(CASE WHEN (cr.created > NOW() - INTERVAL 1 DAY) THEN 1 ELSE 0 END) AS recent " +
 		"FROM conomi_report_group AS crg " +
 		"JOIN conomi_report AS cr ON crg.id = cr.report_group_id " +
 		"WHERE crg.resolved_by_user_id IS NULL " +
-		"GROUP BY crg.app, crg.instance, crg.tag ORDER BY crg.app, crg.instance, crg.tag"
+		"GROUP BY crg.app, crg.instance, crg.tag ORDER BY recent DESC, crg.app, crg.instance, crg.tag"
 	log.Debug().Str("sql", sql1).Msg("going to count conomi_report WHERE resolved_by_user_id IS NULL")
 	rows, err := rdb.db.Query(sql1, general.SeverityLevelCritical, general.SeverityLevelWarning, general.SeverityLevelInfo)
 	if err != nil {
@@ -208,7 +209,7 @@ func (rdb *ReportsDatabase) GetReportCounts() ([]*general.ReportCount, error) {
 	for rows.Next() {
 		count := &general.ReportCount{}
 		var instance, tag sql.NullString
-		err := rows.Scan(&count.SourceID.App, &instance, &tag, &count.Escalated, &count.Critical, &count.Warning, &count.Info)
+		err := rows.Scan(&count.SourceID.App, &instance, &tag, &count.Escalated, &count.Critical, &count.Warning, &count.Info, &count.Recent)
 		if err != nil {
 			return nil, err
 		}
