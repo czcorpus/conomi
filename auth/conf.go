@@ -15,9 +15,10 @@
 package auth
 
 type AuthConf struct {
-	ToolbarURL string `json:"toolbarUrl"`
-	CookieSID  string `json:"cookieSid"`
-	CookieAt   string `json:"cookieAt"`
-	CookieRmme string `json:"cookieRmme"`
-	CookieLang string `json:"cookieLang"`
+	RemoteUserHeader string `json:"remoteUserHeader"`
+	ToolbarURL       string `json:"toolbarUrl"`
+	CookieSID        string `json:"cookieSid"`
+	CookieAt         string `json:"cookieAt"`
+	CookieRmme       string `json:"cookieRmme"`
+	CookieLang       string `json:"cookieLang"`
 }

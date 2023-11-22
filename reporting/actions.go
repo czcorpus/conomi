@@ -41,7 +41,7 @@ type Actions struct {
 }
 
 func (a *Actions) autoResolve(ctx *gin.Context, rdb *engine.ReportsDatabase, groupID int) error {
-	userID, err := auth.GetUserID(ctx)
+	userID, err := auth.GetUserID(ctx, rdb)
 	if err != nil {
 		return err
 	}
@@ -133,13 +133,13 @@ func (a *Actions) ResolveGroup(ctx *gin.Context) {
 			ctx, err, http.StatusBadRequest)
 		return
 	}
-	userID, err := auth.GetUserID(ctx)
+	rdb := engine.NewReportsDatabase(a.db)
+	userID, err := auth.GetUserID(ctx, rdb)
 	if err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)
 		return
 	}
-	rdb := engine.NewReportsDatabase(a.db)
 	err = rdb.ResolveGroup(groupID, userID)
 	if err != nil {
 		uniresp.RespondWithErrorJSON(

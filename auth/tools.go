@@ -18,17 +18,26 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/czcorpus/conomi/engine"
 	"github.com/gin-gonic/gin"
 )
 
-func GetUserID(ctx *gin.Context) (int, error) {
+func GetUserID(ctx *gin.Context, rdb *engine.ReportsDatabase) (int, error) {
 	ctxUserID, exists := ctx.Get("userID")
-	if !exists {
-		return 0, fmt.Errorf("user ID not found")
+	if exists {
+		userID, ok := ctxUserID.(string)
+		if !ok {
+			return 0, fmt.Errorf("user ID has to be string number")
+		}
+		return strconv.Atoi(userID)
 	}
-	userID, ok := ctxUserID.(string)
-	if !ok {
-		return 0, fmt.Errorf("user ID has to be string number")
+	ctxUserName, exists := ctx.Get("userName")
+	if exists {
+		userName, ok := ctxUserName.(string)
+		if !ok {
+			return 0, fmt.Errorf("user name has to be string")
+		}
+		return rdb.GetUserID(userName)
 	}
-	return strconv.Atoi(userID)
+	return 0, fmt.Errorf("user ID or user name not found")
 }
