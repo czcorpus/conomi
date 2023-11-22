@@ -11,7 +11,16 @@ build:
 	go build -o conomi ${LDFLAGS}
 
 install:
-	go install -o conomi ${LDFLAGS}
+	@if [ -z "$$CONOMI_INSTALL_PATH" ]; then \
+		echo "CONOMI_INSTALL_PATH is not defined"; \
+    else \
+		mkdir -p ${CONOMI_INSTALL_PATH}; \
+		cp conomi ${CONOMI_INSTALL_PATH}/conomi; \
+		cp -R dist ${CONOMI_INSTALL_PATH}/dist; \
+		cp -R assets ${CONOMI_INSTALL_PATH}/assets; \
+		mkdir -p ${CONOMI_INSTALL_PATH}/templates; \
+		cp templates/*.gtpl ${CONOMI_INSTALL_PATH}/templates; \
+    fi
 
 clean:
 	rm conomi
