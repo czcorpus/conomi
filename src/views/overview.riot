@@ -6,13 +6,69 @@
             <thead>
                 <tr>
                     <th class="col-mark"></th>
-                    <th class="col-source">Source</th>
-                    <th>Created</th>
-                    <th>Last</th>
-                    <th>Recent</th>
-                    <th>Critical</th>
-                    <th>Warning</th>
-                    <th>Info</th>
+                    <th class="col-source">
+                        <a href="" onclick={() => this.sortCounts("source") }>
+                            Source
+                            <span if={ state.sort === "source" }>
+                                <span if={ state.asc === 1 }>&#9650;</span>
+                                <span if={ state.asc === -1 }>&#9660;</span>
+                            </span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="" onclick={() => this.sortCounts("created") }>
+                            Created
+                            <span if={ state.sort === "created" }>
+                                <span if={ state.asc === 1 }>&#9650;</span>
+                                <span if={ state.asc === -1 }>&#9660;</span>
+                            </span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="" onclick={() => this.sortCounts("last") }>
+                            Last
+                            <span if={ state.sort === "last" }>
+                                <span if={ state.asc === 1 }>&#9650;</span>
+                                <span if={ state.asc === -1 }>&#9660;</span>
+                            </span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="" onclick={() => this.sortCounts("recent") }>
+                            Recent
+                            <span if={ state.sort === "recent" }>
+                                <span if={ state.asc === 1 }>&#9650;</span>
+                                <span if={ state.asc === -1 }>&#9660;</span>
+                            </span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="" onclick={() => this.sortCounts("critical") }>
+                            Critical
+                            <span if={ state.sort === "critical" }>
+                                <span if={ state.asc === 1 }>&#9650;</span>
+                                <span if={ state.asc === -1 }>&#9660;</span>
+                            </span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="" onclick={() => this.sortCounts("warning") }>
+                            Warning
+                            <span if={ state.sort === "warning" }>
+                                <span if={ state.asc === 1 }>&#9650;</span>
+                                <span if={ state.asc === -1 }>&#9660;</span>
+                            </span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="" onclick={() => this.sortCounts("info") }>
+                            Info
+                            <span if={ state.sort === "info" }>
+                                <span if={ state.asc === 1 }>&#9650;</span>
+                                <span if={ state.asc === -1 }>&#9660;</span>
+                            </span>
+                        </a>
+                    </th>
                 </tr>
             </thead>
             <tbody>
@@ -42,10 +98,41 @@
         export default {
             onBeforeMount(props, state) {
                 this.state.counts = null;
+                this.state.sort = null;
+                this.state.asc = null;
                 this.state.error = null;
                 axios.get(props.baseUrl+"/api/overview")
-                    .then(resp => this.update({counts: resp.data}))
-                    .catch(error => this.update({error}))
+                    .then(resp => this.update({counts: resp.data, sort: "recent", asc: 1}))
+                    .catch(error => this.update({error}));
+            },
+            sortCounts(sort) {
+                var sortFn, asc;
+                if (sort == this.state.sort) {
+                    asc = -this.state.asc;
+                } else {
+                    asc = 1;
+                }
+                switch (sort) {
+                    case "source":
+                        sortFn = (a, b) => {
+                            const fa = `${a.sourceId.app} / ${a.sourceId.instance} # ${a.sourceId.tag}`;
+                            const fb = `${b.sourceId.app} / ${b.sourceId.instance} # ${b.sourceId.tag}`;
+                            return asc*(fa < fb ? -1 : fa > fb ? 1 : 0);
+                        }
+                        break;
+                    case "created":
+                    case "last":
+                        sortFn = (a, b) => {
+                            const da = new Date(a[sort]);
+                            const db = new Date(b[sort]);
+                            return asc*(da - db);
+                        }
+                        break;
+                    default:
+                        sortFn = (a, b) => asc*(a[sort] - b[sort]);
+                }
+                this.state.counts.sort(sortFn);
+                this.update({counts: this.state.counts, sort, asc});
             },
         }
     </script>
