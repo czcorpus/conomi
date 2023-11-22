@@ -5,7 +5,8 @@
         <table>
             <thead>
                 <tr>
-                    <th>Source</th>
+                    <th class="col-mark"></th>
+                    <th class="col-source">Source</th>
                     <th>Created</th>
                     <th>Last</th>
                     <th>Recent</th>
@@ -16,15 +17,17 @@
             </thead>
             <tbody>
                 <tr each={ count in state.counts }>
-                    <td>
+                    <td class="col-mark">
+                        <img class="mark" if={ count.escalated } src="{props.baseUrl}/ui/assets/img/mark.png">
+                    </td>
+                    <td class="col-source">
                         <a href={`list?app=${count.sourceId.app}&instance=${count.sourceId.instance}&tag=${count.sourceId.tag}`}>
                             { count.sourceId.app } / { count.sourceId.instance } # { count.sourceId.tag }
                         </a>
-                        <img class="mark" if={ count.escalated } src="{props.baseUrl}/ui/assets/img/mark.png">
                     </td>
-                    <td class="created">{ count.created }</td>
-                    <td class="last">{ count.last }</td>
-                    <td class="recent">{ count.recent }</td>
+                    <td>{ count.created }</td>
+                    <td>{ count.last }</td>
+                    <td>{ count.recent }</td>
                     <td class="critical">{ count.critical }</td>
                     <td class="warning">{ count.warning }</td>
                     <td class="info">{ count.info }</td>
@@ -48,13 +51,21 @@
     </script>
 
     <style>
+        th, td {
+           padding: 0.1em 1em;
+        }
+
+        .col-mark {
+            width: 1em;
+        }
+
+        .col-source {
+            padding-left: 0em;
+        }
+
         .mark {
             width: 1em;
             margin: 0 0.5em;
-        }
-
-        th, td {
-           padding: 0.1em 1em;
         }
     </style>
 </overview>
