@@ -88,12 +88,14 @@
             getOverview() {
                 axios.get(this.props.baseUrl+"/api/overview")
                     .then(resp => this.update({
-                        counts: resp.data.map(item => {
-                            item.last = new Date(item.last);
-                            item.created = new Date(item.created);
-                            item.duration = item.last - item.created;
-                            return item;
-                        }),
+                        counts: resp.data
+                            .filter(item => item.recent !== 0 || item.critical !== 0 || item.warning !== 0)
+                            .map(item => {
+                                item.last = new Date(item.last);
+                                item.created = new Date(item.created);
+                                item.duration = item.last - item.created;
+                                return item;
+                            }),
                         sort: "recent",
                         asc: -1,
                     }))
