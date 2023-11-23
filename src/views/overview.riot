@@ -78,7 +78,7 @@
                 this.state.asc = null;
                 this.state.error = null;
                 axios.get(props.baseUrl+"/api/overview")
-                    .then(resp => this.update({counts: resp.data, sort: "recent", asc: 1}))
+                    .then(resp => this.update({counts: resp.data, sort: "recent", asc: -1}))
                     .catch(error => this.update({error}));
             },
             sortCounts(sort) {
