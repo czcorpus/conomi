@@ -8,6 +8,7 @@
         <a class="menu" href="{props.baseUrl}/ui/">Overview</a>
         <a class="menu" href="{props.baseUrl}/ui/list">List</a>
       </nav>
+      <span class="username" if={props.userName} class="logged">logged: {props.userName}</span>
     </div>
 
     <div class="content" if={props.renderContent}>
@@ -31,6 +32,11 @@
       align-items: center;
       background-color: #001736;
       height: 5em;
+    }
+
+    .username {
+      margin-left: auto;
+      margin-right: 1em;
     }
 
     img {
