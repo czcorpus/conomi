@@ -21,7 +21,7 @@
                     <td>{ state.report.sourceId.app }</td>
                     <td>{ state.report.sourceId.instance }</td>
                     <td>{ state.report.sourceId.tag }</td>
-                    <td>{ state.report.created }</td>
+                    <td>{ state.report.created.toLocaleString() }</td>
                     <td>{ state.report.severity }</td>
                     <td if={ state.report.resolvedByUserId == -1 }>
                         <button class="button button-small" onclick={ () => resolveGroup(props.baseUrl, state.report.groupId) }>Resolve group</button>
@@ -64,23 +64,26 @@
                 this.state.report = null;
                 this.state.isBusy = true;
                 this.state.error = null;
-                this.loadReport = () => {
-                    axios.get(`${props.baseUrl}/api/report/${props.reportId}`, {params: {"md-to-html": "1"}})
-                        .then(resp => this.update({
-                            report: resp.data,
-                            isBusy: false,
-                        }))
-                        .catch(error => this.update({
-                            error,
-                            isBusy: false,
-                        }));
-                };
                 this.loadReport();
             },
             resolveGroup(baseUrl, groupId) {
                 this.update({isBusy: true});
                 axios.post(`${baseUrl}/api/resolve/${groupId}`)
                     .then(resp => this.loadReport())
+                    .catch(error => this.update({
+                        error,
+                        isBusy: false,
+                    }));
+            },
+            loadReport() {
+                axios.get(`${this.props.baseUrl}/api/report/${this.props.reportId}`, {params: {"md-to-html": "1"}})
+                    .then(resp => {
+                        resp.data.created = new Date(resp.data.created);
+                        this.update({
+                            report: resp.data,
+                            isBusy: false,
+                        });
+                    })
                     .catch(error => this.update({
                         error,
                         isBusy: false,
