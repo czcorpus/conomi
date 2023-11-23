@@ -1,4 +1,4 @@
-# {{ .Report.Severity | severityToEmoji }} {{ .Report.Severity.String | upper }}: {{ .Report.Subject }}
+# {{ if .Report.Escalated }}:fire:{{ end }}{{ .Report.Severity | severityToEmoji }} {{ .Report.Severity.String | upper }}: {{ .Report.Subject }}
 ## {{ .Report | mkReportSourceIDLabel }}
 
 {{ .Report.Body }}
