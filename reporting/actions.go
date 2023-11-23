@@ -75,6 +75,10 @@ func (a *Actions) handleReport(ctx *gin.Context, report *general.Report) error {
 	return a.n.SendNotifications(report)
 }
 
+func (a *Actions) Ping(ctx *gin.Context) {
+	uniresp.WriteJSONResponse(ctx.Writer, map[string]bool{"ok": true})
+}
+
 func (a *Actions) PostReport(ctx *gin.Context) {
 	report := general.Report{ResolvedByUserID: -1, Created: time.Now().In(a.loc)}
 	if err := ctx.ShouldBindJSON(&report); err != nil {

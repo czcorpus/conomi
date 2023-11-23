@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -77,8 +78,9 @@ func runApiServer(
 	}
 	r := reporting.NewActions(conf.TimezoneLocation(), sqlDB, n, e)
 	api := engine.Group("/api")
-	api.Use(auth.AbortUnauthorized())
 	api.Use(uniresp.AlwaysJSONContentType())
+	api.Use(auth.AbortUnauthorized())
+	api.GET("/ping", r.Ping)
 	api.POST("/report", r.PostReport)
 	api.GET("/report/:reportId", r.GetReport)
 	api.POST("/resolve/:groupId", r.ResolveGroup)
@@ -161,6 +163,7 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Conomi - CNC Notification Middleware\n\n")
 		fmt.Fprintf(os.Stderr, "Usage:\n\t%s [options] start [config.json]\n\t", filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stderr, "%s tokenhash [token]\n\t", filepath.Base(os.Args[0]))
 		fmt.Fprintf(os.Stderr, "%s [options] version\n", filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 	}
@@ -171,6 +174,11 @@ func main() {
 			"Conomi - CNC Notification Middleware\n%s\nbuild date: %s\nlast commit: %s\n",
 			build.Version, build.BuildDate, build.GitCommit,
 		)
+		return
+	} else if action == "hashtoken" {
+		h := sha256.New()
+		h.Write([]byte(flag.Arg(1)))
+		fmt.Printf("%x\n", h.Sum(nil))
 		return
 	}
 	conf := cnf.LoadConfig(flag.Arg(1))

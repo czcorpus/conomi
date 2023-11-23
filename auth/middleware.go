@@ -23,6 +23,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	ApiAuthTokenHTTPHeader = "x-conomi-token"
+)
+
 func Authenticate(conf *AuthConf, publicPath string) gin.HandlerFunc {
 	if conf == nil {
 		return func(ctx *gin.Context) {
@@ -37,6 +41,12 @@ func Authenticate(conf *AuthConf, publicPath string) gin.HandlerFunc {
 				ctx.Set("authenticated", true)
 				ctx.Set("userName", remoteUser)
 			}
+			ctx.Next()
+		}
+
+	} else if conf.APITokenHash != "" {
+		return func(ctx *gin.Context) {
+			ctx.Set("authenticated", ctx.Request.Header.Get(ApiAuthTokenHTTPHeader) == conf.APITokenHash)
 			ctx.Next()
 		}
 	}
@@ -109,9 +119,8 @@ func AbortUnauthorized() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authenticated, exists := ctx.Get("authenticated")
 		if exists && authenticated == false {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-		} else {
-			ctx.Next()
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, map[string]bool{"authorized": false})
 		}
+		ctx.Next()
 	}
 }
