@@ -21,6 +21,7 @@ import (
 	"net/url"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -33,20 +34,21 @@ func Authenticate(conf *AuthConf, publicPath string) gin.HandlerFunc {
 			ctx.Set("authenticated", true)
 			ctx.Next()
 		}
-	} else if conf.RemoteUserHeader != "" {
+	} else if conf.RemoteUserHeader != "" || conf.APITokenHash != "" {
 		return func(ctx *gin.Context) {
 			ctx.Set("authenticated", false)
 			remoteUser := ctx.Request.Header.Get(conf.RemoteUserHeader)
 			if remoteUser != "" {
 				ctx.Set("authenticated", true)
 				ctx.Set("userName", remoteUser)
-			}
-			ctx.Next()
-		}
 
-	} else if conf.APITokenHash != "" {
-		return func(ctx *gin.Context) {
-			ctx.Set("authenticated", ctx.Request.Header.Get(ApiAuthTokenHTTPHeader) == conf.APITokenHash)
+			} else {
+				log.Debug().
+					Str("expected", conf.APITokenHash).
+					Str("obtained", ctx.Request.Header.Get(ApiAuthTokenHTTPHeader)).
+					Msg("testing token authentication")
+				ctx.Set("authenticated", ctx.Request.Header.Get(ApiAuthTokenHTTPHeader) == conf.APITokenHash)
+			}
 			ctx.Next()
 		}
 	}
