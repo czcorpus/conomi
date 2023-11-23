@@ -73,17 +73,14 @@ func (e *Escalator) HandleEscalation(report *general.Report) error {
 			SourceID: report.SourceID,
 			Severity: general.SeverityLevelCritical,
 			Subject:  "Service escalated!",
-			Body:     "Subsequent notifications will be set to CRITICAL",
+			Body:     "Subsequent notifications will be escalated",
 		})
 		if err != nil {
 			return err
 		}
 	}
-
-	// change report severity to critical if escalated
-	if count.Escalated {
-		report.Severity = general.SeverityLevelCritical
-	}
+	// update report escalation
+	report.Escalated = count.Escalated
 	return nil
 }
 

@@ -106,13 +106,20 @@ func runApiServer(
 			}
 		}
 		auth, exists := c.Get("authenticated")
-		if exists && auth == false {
-			params["errorMsg"] = "Unauthorized"
-			c.HTML(http.StatusUnauthorized, "index.html", params)
+		if exists {
+			if auth == true {
+				userName, exists := c.Get("userName")
+				if exists {
+					params["userName"] = userName
+				}
+			} else {
+				params["errorMsg"] = "Unauthorized"
+				c.HTML(http.StatusUnauthorized, "index.html", params)
+				return
+			}
 
-		} else {
-			c.HTML(http.StatusOK, "index.html", params)
 		}
+		c.HTML(http.StatusOK, "index.html", params)
 	}
 	ui.GET("/", uiHandler)
 	ui.GET("/list", uiHandler)

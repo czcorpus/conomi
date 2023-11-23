@@ -57,6 +57,9 @@ func (en *emailNotifier) SendNotification(report *general.Report) error {
 		return err
 	}
 	subject := strings.ToUpper(report.Severity.String()) + ": " + report.Subject
+	if report.Escalated {
+		subject = "(ES)" + subject
+	}
 	if len(report.SourceID.Instance) > 0 {
 		subject += " (" + report.SourceID.App + "/" + report.SourceID.Instance + ")"
 	} else {

@@ -117,7 +117,7 @@ func (rdb *ReportsDatabase) ListReports(sourceID general.SourceID) ([]*general.R
 		whereClause = append(whereClause, "tag = ?")
 		whereValues = append(whereValues, sourceID.Tag)
 	}
-	sql1 := "SELECT cr.id, crg.id, crg.app, crg.instance, crg.tag, cr.severity, cr.subject, cr.body, cr.args, cr.created, crg.resolved_by_user_id, us.user " +
+	sql1 := "SELECT cr.id, crg.id, crg.app, crg.instance, crg.tag, cr.severity, cr.subject, cr.body, cr.args, cr.created, crg.resolved_by_user_id, us.user, crg.escalated " +
 		"FROM conomi_report_group AS crg " +
 		"JOIN conomi_report AS cr ON crg.id = cr.report_group_id " +
 		"LEFT JOIN user AS us ON resolved_by_user_id = us.id " +
@@ -131,7 +131,7 @@ func (rdb *ReportsDatabase) ListReports(sourceID general.SourceID) ([]*general.R
 	ans := make([]*general.Report, 0, 100)
 	for rows.Next() {
 		entry := &reportSQL{}
-		err := rows.Scan(&entry.ID, &entry.GroupID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID, &entry.ResolvedByUserName)
+		err := rows.Scan(&entry.ID, &entry.GroupID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID, &entry.ResolvedByUserName, &entry.Escalated)
 		if err != nil {
 			return nil, err
 		}
@@ -148,7 +148,7 @@ func (rdb *ReportsDatabase) ListReports(sourceID general.SourceID) ([]*general.R
 }
 
 func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) {
-	sql1 := "SELECT cr.id, crg.id, crg.app, crg.instance, crg.tag, cr.severity, cr.subject, cr.body, cr.args, cr.created, crg.resolved_by_user_id, us.user " +
+	sql1 := "SELECT cr.id, crg.id, crg.app, crg.instance, crg.tag, cr.severity, cr.subject, cr.body, cr.args, cr.created, crg.resolved_by_user_id, us.user, crg.escalated " +
 		"FROM conomi_report_group AS crg " +
 		"JOIN conomi_report AS cr ON crg.id = cr.report_group_id " +
 		"LEFT JOIN user AS us ON resolved_by_user_id = us.id " +
@@ -156,7 +156,7 @@ func (rdb *ReportsDatabase) SelectReport(reportID int) (*general.Report, error) 
 	log.Debug().Str("sql", sql1).Msgf("going to SELECT conomi_reports WHERE id = %d", reportID)
 	entry := &reportSQL{}
 	row := rdb.db.QueryRow(sql1, reportID)
-	if err := row.Scan(&entry.ID, &entry.GroupID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID, &entry.ResolvedByUserName); err != nil {
+	if err := row.Scan(&entry.ID, &entry.GroupID, &entry.App, &entry.Instance, &entry.Tag, &entry.Severity, &entry.Subject, &entry.Body, &entry.Args, &entry.Created, &entry.ResolvedByUserID, &entry.ResolvedByUserName, &entry.Escalated); err != nil {
 		return nil, err
 	}
 	if err := entry.Severity.Validate(); err != nil {

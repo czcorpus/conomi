@@ -38,6 +38,7 @@ type reportSQL struct {
 	Created            time.Time
 	ResolvedByUserID   sql.NullInt32
 	ResolvedByUserName sql.NullString
+	Escalated          bool
 }
 
 func (r *reportSQL) Export() (*general.Report, error) {
@@ -67,6 +68,7 @@ func (r *reportSQL) Export() (*general.Report, error) {
 		Created:            r.Created,
 		ResolvedByUserID:   resolvedByUserID,
 		ResolvedByUserName: r.ResolvedByUserName.String,
+		Escalated:          r.Escalated,
 	}, nil
 }
 
@@ -92,5 +94,6 @@ func NewReportSQL(r *general.Report) (*reportSQL, error) {
 		Args:             args,
 		Created:          r.Created,
 		ResolvedByUserID: sql.NullInt32{Valid: r.ResolvedByUserID != -1, Int32: int32(r.ResolvedByUserID)},
+		Escalated:        r.Escalated,
 	}, nil
 }

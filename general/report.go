@@ -37,6 +37,7 @@ type Report struct {
 	Created            time.Time      `json:"created"`
 	ResolvedByUserID   int            `json:"resolvedByUserId"` // for empty user we use value -1
 	ResolvedByUserName string         `json:"resolvedByUserName"`
+	Escalated          bool           `json:"escalated"`
 }
 
 type ReportOverview struct {
