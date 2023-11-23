@@ -55,6 +55,9 @@ npm-debug.log
 coverage
 generated
 /dist
+conomi
+cping
+conf.json
 
 # these files are generated anyway
 .nycrc

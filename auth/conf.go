@@ -21,4 +21,5 @@ type AuthConf struct {
 	CookieAt         string `json:"cookieAt"`
 	CookieRmme       string `json:"cookieRmme"`
 	CookieLang       string `json:"cookieLang"`
+	APITokenHash     string `json:"apiTokenHash"`
 }

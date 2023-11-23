@@ -16,11 +16,15 @@ package client
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
+	"github.com/czcorpus/conomi/auth"
 	"github.com/czcorpus/conomi/general"
 	"github.com/rs/zerolog/log"
 )
@@ -29,6 +33,7 @@ type ConomiClientConf struct {
 	Server   string `json:"server"`
 	App      string `json:"app"`
 	Instance string `json:"instance"`
+	APIToken string `json:"apiToken"`
 }
 
 type ConomiClient struct {
@@ -41,6 +46,45 @@ type conomiReport struct {
 	Subject  string                `json:"subject"`
 	Body     string                `json:"body"`
 	Args     map[string]any        `json:"args"`
+}
+
+func (cc *ConomiClient) Ping() error {
+	reportURL, err := url.JoinPath(cc.conf.Server, "api", "ping")
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("GET", reportURL, &bytes.Buffer{})
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	h := sha256.New()
+	h.Write([]byte(cc.conf.APIToken))
+	req.Header.Set(auth.ApiAuthTokenHTTPHeader, fmt.Sprintf("%x", h.Sum(nil)))
+
+	resp, err := http.DefaultClient.Do(req)
+	log.Debug().
+		Err(err).
+		Msg("sent Conomi ping via HTTP")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	var msg map[string]bool
+	err = json.Unmarshal(respBody, &msg)
+	if err != nil {
+		return err
+	}
+	log.Debug().Str("response", string(respBody)).Msg("conomi post performed")
+	if msg["ok"] {
+		return nil
+	}
+	return errors.New("obtained value != `ok`")
 }
 
 func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject string, body string, opts ...ReportOption) error {
@@ -70,6 +114,9 @@ func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject strin
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	h := sha256.New()
+	h.Write([]byte(cc.conf.APIToken))
+	req.Header.Set(auth.ApiAuthTokenHTTPHeader, fmt.Sprintf("%x", h.Sum(nil)))
 
 	resp, err := http.DefaultClient.Do(req)
 	log.Debug().

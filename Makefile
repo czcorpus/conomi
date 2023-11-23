@@ -9,6 +9,7 @@ all: test build
 
 build:
 	go build -o conomi ${LDFLAGS}
+	go build cmd/cping.go
 
 install:
 	@if [ -z "$$CONOMI_INSTALL_PATH" ]; then \
