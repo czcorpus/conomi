@@ -22,6 +22,11 @@
                         </sort>
                     </th>
                     <th>
+                        <sort handler={this.sortCounts} value="duration" sort={state.sort} asc={state.asc}>
+                            Duration
+                        </sort>
+                    </th>
+                    <th>
                         <sort handler={this.sortCounts} value="recent" sort={state.sort} asc={state.asc}>
                             Recent
                         </sort>
@@ -55,6 +60,7 @@
                     </td>
                     <td>{ count.created.toLocaleString() }</td>
                     <td>{ count.last.toLocaleString() }</td>
+                    <td>{ this.msecs2hms(count.duration) }</td>
                     <td>{ count.recent }</td>
                     <td class="critical">{ count.critical }</td>
                     <td class="warning">{ count.warning }</td>
@@ -85,6 +91,7 @@
                         counts: resp.data.map(item => {
                             item.last = new Date(item.last);
                             item.created = new Date(item.created);
+                            item.duration = item.last - item.created;
                             return item;
                         }),
                         sort: "recent",
@@ -115,6 +122,19 @@
             },
             composeName(sourceId) {
                 return `${sourceId.app} / ${sourceId.instance} # ${sourceId.tag}`;
+            },
+            composeName(sourceId) {
+                return `${sourceId.app} / ${sourceId.instance} # ${sourceId.tag}`;
+            },
+            msecs2hms(ms) {
+                const s1 = ms/1000;
+                const sgn = s1 < 0 ? '-' : '';
+                const s2 = Math.abs(s1);
+                const h = Math.floor((s2 / 3600));
+                const m = Math.floor((s2 % 3600)/60);
+                const s = s2 % 60;
+                const lz = (v) => v < 10 ? `0${v.toFixed()}` : v.toFixed();
+                return `${sgn}${lz(h)}:${lz(m)}:${lz(s)}`;
             }
         }
     </script>
