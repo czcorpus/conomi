@@ -15,11 +15,16 @@
 package auth
 
 type AuthConf struct {
-	RemoteUserHeader string `json:"remoteUserHeader"`
-	ToolbarURL       string `json:"toolbarUrl"`
-	CookieSID        string `json:"cookieSid"`
-	CookieAt         string `json:"cookieAt"`
-	CookieRmme       string `json:"cookieRmme"`
-	CookieLang       string `json:"cookieLang"`
-	APITokenHash     string `json:"apiTokenHash"`
+	RemoteUserHeader string      `json:"remoteUserHeader"`
+	ToolbarURL       string      `json:"toolbarUrl"`
+	CookieSID        string      `json:"cookieSid"`
+	CookieAt         string      `json:"cookieAt"`
+	CookieRmme       string      `json:"cookieRmme"`
+	CookieLang       string      `json:"cookieLang"`
+	APITokens        []TokenConf `json:"apiTokens"`
+}
+
+type TokenConf struct {
+	APITokenHash string `json:"apiTokenHash"`
+	ClientID     string `json:"clientId"`
 }
