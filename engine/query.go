@@ -19,6 +19,7 @@ package engine
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"github.com/czcorpus/conomi/general"
@@ -63,11 +64,11 @@ func (rdb *ReportsDatabase) assignNewGroup(report *general.Report) error {
 	tag := sql.NullString{String: report.SourceID.Tag, Valid: report.SourceID.Tag != ""}
 	result, err := rdb.db.Exec(sql1, report.SourceID.App, instance, tag, report.Created)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to assign new group: %w", err)
 	}
 	groupID, err := result.LastInsertId()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to assign new group: %w", err)
 	}
 	report.GroupID = int(groupID)
 	return nil
@@ -77,25 +78,25 @@ func (rdb *ReportsDatabase) InsertReport(report *general.Report) error {
 	err := rdb.updateGroupID(report)
 	if err == sql.ErrNoRows {
 		if err := rdb.assignNewGroup(report); err != nil {
-			return err
+			return fmt.Errorf("failed to insert report: %w", err)
 		}
 	} else if err != nil {
-		return err
+		return fmt.Errorf("failed to insert report: %w", err)
 	}
 
 	sql1 := "INSERT INTO conomi_report (report_group_id, severity, subject, body, args, created) VALUES (?,?,?,?,?,?)"
 	entry, err := NewReportSQL(report)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to insert report: %w", err)
 	}
 	log.Debug().Str("sql", sql1).Msg("going to INSERT report")
 	result, err := rdb.db.Exec(sql1, entry.GroupID, entry.Severity, entry.Subject, entry.Body, entry.Args, entry.Created)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to insert report: %w", err)
 	}
 	reportID, err := result.LastInsertId()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to insert report: %w", err)
 	}
 	report.ID = int(reportID)
 	return nil
@@ -172,7 +173,7 @@ func (rdb *ReportsDatabase) EscalateGroup(groupID int) error {
 	log.Debug().Str("sql", sql1).Msgf("going to escalate group WHERE id = %d", groupID)
 	_, err := rdb.db.Exec(sql1, groupID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to escalate group: %w", err)
 	}
 	return nil
 }
@@ -184,7 +185,7 @@ func (rdb *ReportsDatabase) ResolveGroup(groupID int, userID int) error {
 	log.Debug().Str("sql", sql1).Msgf("going to resolve group WHERE id = %d", groupID)
 	_, err := rdb.db.Exec(sql1, userID, groupID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to resolve group: %w", err)
 	}
 	return nil
 }
@@ -252,6 +253,9 @@ func (rdb *ReportsDatabase) GetUserID(userName string) (int, error) {
 	row := rdb.db.QueryRow(sql1, userName)
 	var userID int
 	err := row.Scan(&userID)
+	if err == sql.ErrNoRows {
+		return 0, fmt.Errorf("failed to find user with username `%s`", userName)
+	}
 	if err != nil {
 		return 0, err
 	}

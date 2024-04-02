@@ -22,6 +22,12 @@ type AuthConf struct {
 	CookieRmme       string      `json:"cookieRmme"`
 	CookieLang       string      `json:"cookieLang"`
 	APITokens        []TokenConf `json:"apiTokens"`
+
+	// UnsafeForceFallbackUser can be used for development and testing
+	// purposes along with APITokens and RemoteUserHeader to allow
+	// clients authentication into actions without actually having
+	// a proper token. This should not be used in production!!!
+	UnsafeForceFallbackUser string `json:"UNSAFE_setFallbackUser"`
 }
 
 type TokenConf struct {
