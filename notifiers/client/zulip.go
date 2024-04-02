@@ -74,20 +74,20 @@ func (zn *zulipNotifier) SendNotification(report *general.Report) error {
 			Info:         zn.info,
 		},
 	); err != nil {
-		return err
+		return fmt.Errorf("failed to send Zulip notification: %w", err)
 	}
 	params.Add("content", message.String())
 
 	zURL, err := url.Parse(zn.args.Server)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send Zulip notification: %w", err)
 	}
 	zURL = zURL.JoinPath("api", "v1", "messages")
 	zURL.RawQuery = params.Encode()
 
 	req, err := http.NewRequest("POST", zURL.String(), nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send Zulip notification: %w", err)
 	}
 	req.Header.Set("User-Agent", fmt.Sprintf("CNKNotifier/%s-%s", zn.info.Build.Version, zn.info.Build.GitCommit))
 	req.SetBasicAuth(zn.args.Sender, zn.args.Token)
@@ -95,13 +95,13 @@ func (zn *zulipNotifier) SendNotification(report *general.Report) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send Zulip notification: %w", err)
 	}
 
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send Zulip notification: %w", err)
 	}
 
 	log.Debug().Bytes("response", body).Msg("performed zulip post")

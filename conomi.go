@@ -70,11 +70,11 @@ func runApiServer(
 
 	n, err := notifiers.NewNotifiers(info, conf.Notifiers, conf.TimezoneLocation())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to instantiate notifiers: %w", err)
 	}
 	e, err := escalator.NewEscalator(sqlDB, n)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to instantiate escalator: %w", err)
 	}
 	r := reporting.NewActions(conf.TimezoneLocation(), sqlDB, n, e)
 	api := engine.Group("/api")
@@ -163,7 +163,7 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Conomi - CNC Notification Middleware\n\n")
 		fmt.Fprintf(os.Stderr, "Usage:\n\t%s [options] start [config.json]\n\t", filepath.Base(os.Args[0]))
-		fmt.Fprintf(os.Stderr, "%s tokenhash [token]\n\t", filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stderr, "%s hashtoken [token]\n\t", filepath.Base(os.Args[0]))
 		fmt.Fprintf(os.Stderr, "%s [options] version\n", filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 	}
@@ -175,10 +175,16 @@ func main() {
 			build.Version, build.BuildDate, build.GitCommit,
 		)
 		return
+
 	} else if action == "hashtoken" {
 		h := sha256.New()
 		h.Write([]byte(flag.Arg(1)))
 		fmt.Printf("%x\n", h.Sum(nil))
+		return
+
+	} else if action != "test" && action != "start" {
+		fmt.Println("unknown action ", action)
+		os.Exit(1)
 		return
 	}
 	conf := cnf.LoadConfig(flag.Arg(1))

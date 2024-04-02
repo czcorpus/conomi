@@ -37,10 +37,12 @@ func Authenticate(conf *AuthConf, publicPath string) gin.HandlerFunc {
 	} else if conf.RemoteUserHeader != "" || conf.APITokens != nil {
 		return func(ctx *gin.Context) {
 			ctx.Set("authenticated", false)
+			var foundUser bool
 			remoteUser := ctx.Request.Header.Get(conf.RemoteUserHeader)
 			if remoteUser != "" {
 				ctx.Set("authenticated", true)
 				ctx.Set("userName", remoteUser)
+				foundUser = true
 
 			} else {
 				log.Debug().
@@ -51,10 +53,16 @@ func Authenticate(conf *AuthConf, publicPath string) gin.HandlerFunc {
 					if ctx.Request.Header.Get(ApiAuthTokenHTTPHeader) == token.APITokenHash {
 						ctx.Set("authenticated", true)
 						ctx.Set("userName", token.ClientID)
+						foundUser = true
 						break
 					}
 				}
 			}
+			if !foundUser && conf.UnsafeForceFallbackUser != "" {
+				ctx.Set("authenticated", true)
+				ctx.Set("userName", conf.UnsafeForceFallbackUser)
+			}
+
 			ctx.Next()
 		}
 	}

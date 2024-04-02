@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package reporting
+package content
 
 import (
 	"github.com/gomarkdown/markdown"
@@ -22,7 +22,7 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 )
 
-func mdToHTML(md string) string {
+func MarkdownToHTML(md string) string {
 	// create markdown parser with extensions
 	extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock
 	p := parser.NewWithExtensions(extensions)

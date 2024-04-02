@@ -17,6 +17,8 @@
 package common
 
 import (
+	"fmt"
+
 	"github.com/czcorpus/conomi/general"
 )
 
@@ -36,7 +38,7 @@ type FilterConf struct {
 func (fc *FilterConf) Validate() error {
 	for _, level := range fc.Levels {
 		if err := level.Validate(); err != nil {
-			return err
+			return fmt.Errorf("failed to validate FilterConf: %w", err)
 		}
 	}
 	return nil

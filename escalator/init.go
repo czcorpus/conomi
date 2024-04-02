@@ -67,7 +67,7 @@ func (e *Escalator) HandleEscalation(report *general.Report) error {
 		rdb := engine.NewReportsDatabase(e.db)
 		err := rdb.EscalateGroup(report.GroupID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to handle escalation: %w", err)
 		}
 		err = e.notifiers.SendNotifications(&general.Report{
 			SourceID: report.SourceID,
@@ -76,7 +76,7 @@ func (e *Escalator) HandleEscalation(report *general.Report) error {
 			Body:     "Subsequent notifications will be escalated",
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to handle escalation: %w", err)
 		}
 	}
 	// update report escalation
@@ -88,7 +88,7 @@ func (e *Escalator) Reload() error {
 	rdb := engine.NewReportsDatabase(e.db)
 	counts, err := rdb.GetOverview()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to reload escalator: %w", err)
 	}
 	e.counts = make(map[string]*general.ReportOverview)
 	for _, count := range counts {

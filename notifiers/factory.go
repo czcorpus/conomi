@@ -70,7 +70,7 @@ func (n *Notifiers) SendNotifications(report *general.Report) error {
 	for _, client := range n.notifiers {
 		if client.ShouldBeSent(report) {
 			if err := client.SendNotification(report); err != nil {
-				return err
+				return fmt.Errorf("failed to send notifications: %w", err)
 			}
 		}
 	}

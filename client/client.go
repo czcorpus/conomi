@@ -51,11 +51,11 @@ type conomiReport struct {
 func (cc *ConomiClient) Ping() error {
 	reportURL, err := url.JoinPath(cc.conf.Server, "api", "ping")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to ping server: %w", err)
 	}
 	req, err := http.NewRequest("GET", reportURL, &bytes.Buffer{})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to ping server: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	h := sha256.New()
@@ -67,30 +67,30 @@ func (cc *ConomiClient) Ping() error {
 		Err(err).
 		Msg("sent Conomi ping via HTTP")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to ping server: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to ping server: %w", err)
 	}
 	var msg map[string]bool
 	err = json.Unmarshal(respBody, &msg)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to ping server: %w", err)
 	}
 	log.Debug().Str("response", string(respBody)).Msg("conomi post performed")
 	if msg["ok"] {
 		return nil
 	}
-	return errors.New("obtained value != `ok`")
+	return errors.New("failed to ping server: obtained value != `ok`")
 }
 
 func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject string, body string, opts ...ReportOption) error {
 	reportURL, err := url.JoinPath(cc.conf.Server, "api", "report")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send report: %w", err)
 	}
 	report := conomiReport{
 		SourceID: general.SourceID{
@@ -106,12 +106,12 @@ func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject strin
 	}
 	payload, err := json.Marshal(report)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send report: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", reportURL, bytes.NewReader(payload))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send report: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	h := sha256.New()
@@ -129,13 +129,13 @@ func (cc *ConomiClient) SendReport(severity general.SeverityLevel, subject strin
 		Any("args", report.Args).
 		Msg("sent Conomi report via HTTP")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send report: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send report: %w", err)
 	}
 	log.Debug().Str("response", string(respBody)).Msg("conomi post performed")
 	return nil

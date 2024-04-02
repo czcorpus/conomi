@@ -27,6 +27,7 @@ import (
 	"github.com/czcorpus/cnc-gokit/mail"
 	"github.com/czcorpus/conomi/general"
 	"github.com/czcorpus/conomi/notifiers/common"
+	"github.com/czcorpus/conomi/reporting/content"
 	"github.com/czcorpus/conomi/templates"
 	"github.com/rs/zerolog/log"
 )
@@ -46,6 +47,7 @@ func (en *emailNotifier) ShouldBeSent(report *general.Report) bool {
 
 func (en *emailNotifier) SendNotification(report *general.Report) error {
 	var message strings.Builder
+	report.Body = content.MarkdownToHTML(report.Body)
 	if err := en.tmpl.Execute(
 		&message,
 		templates.NotificationTemplateData{
@@ -54,11 +56,11 @@ func (en *emailNotifier) SendNotification(report *general.Report) error {
 			Info:         en.info,
 		},
 	); err != nil {
-		return err
+		return fmt.Errorf("failed to evaluate notification template: %w", err)
 	}
 	subject := strings.ToUpper(report.Severity.String()) + ": " + report.Subject
 	if report.Escalated {
-		subject = "(ES)" + subject
+		subject = "[ESCALATED] " + subject
 	}
 	if len(report.SourceID.Instance) > 0 {
 		subject += " (" + report.SourceID.App + "/" + report.SourceID.Instance + ")"

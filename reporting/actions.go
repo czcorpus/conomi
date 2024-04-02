@@ -18,6 +18,7 @@ package reporting
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -28,6 +29,7 @@ import (
 	"github.com/czcorpus/conomi/escalator"
 	"github.com/czcorpus/conomi/general"
 	"github.com/czcorpus/conomi/notifiers"
+	"github.com/czcorpus/conomi/reporting/content"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
@@ -43,13 +45,13 @@ type Actions struct {
 func (a *Actions) autoResolve(ctx *gin.Context, rdb *engine.ReportsDatabase, groupID int) error {
 	userID, err := auth.GetUserID(ctx, rdb)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to auto-resolve a report: %w", err)
 	}
 	if err := rdb.ResolveGroup(groupID, userID); err != nil {
-		return err
+		return fmt.Errorf("failed to auto-resolve a report: %w", err)
 	}
 	if err := a.e.Reload(); err != nil {
-		return err
+		return fmt.Errorf("failed to auto-resolve a report: %w", err)
 	}
 	return nil
 }
@@ -57,20 +59,20 @@ func (a *Actions) autoResolve(ctx *gin.Context, rdb *engine.ReportsDatabase, gro
 func (a *Actions) handleReport(ctx *gin.Context, report *general.Report) error {
 	rdb := engine.NewReportsDatabase(a.db)
 	if err := rdb.InsertReport(report); err != nil {
-		return err
+		return fmt.Errorf("handleReport failed with insert error: %w", err)
 	}
 
 	// ctx == nil for self self reporting
 	if ctx != nil && report.Severity == general.SeverityLevelRecovery {
 		if err := a.autoResolve(ctx, rdb, report.GroupID); err != nil {
 			// must not be sent in self reporting! (infinite loop)
-			a.selfReport <- err
+			a.selfReport <- fmt.Errorf("handleReport failed with autoResolve error: %w", err)
 			log.Error().AnErr("error", err).Msg("auto resolve failed")
 		}
 	}
 
 	if err := a.e.HandleEscalation(report); err != nil {
-		return err
+		return fmt.Errorf("handleReport failed with escalation error: %w", err)
 	}
 	return a.n.SendNotifications(report)
 }
@@ -176,7 +178,7 @@ func (a *Actions) GetReport(ctx *gin.Context) {
 		return
 	}
 	if ctx.Query("md-to-html") == "1" {
-		report.Body = mdToHTML(report.Body)
+		report.Body = content.MarkdownToHTML(report.Body)
 	}
 	uniresp.WriteJSONResponse(ctx.Writer, report)
 }
