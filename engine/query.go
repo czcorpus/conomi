@@ -102,29 +102,35 @@ func (rdb *ReportsDatabase) InsertReport(report *general.Report) error {
 	return nil
 }
 
-func (rdb *ReportsDatabase) ListReports(sourceID general.SourceID) ([]*general.Report, error) {
-	whereClause := make([]string, 0, 4)
+func (rdb *ReportsDatabase) ListReports(sourceID general.SourceID, resolved bool) ([]*general.Report, error) {
+	whereParts := make([]string, 0, 4)
 	whereValues := make([]any, 0, 3)
-	whereClause = append(whereClause, "resolved_by_user_id IS NULL")
+	if !resolved {
+		whereParts = append(whereParts, "resolved_by_user_id IS NULL")
+	}
 	if sourceID.App != "" {
-		whereClause = append(whereClause, "app = ?")
+		whereParts = append(whereParts, "app = ?")
 		whereValues = append(whereValues, sourceID.App)
 	}
 	if sourceID.Instance != "" {
-		whereClause = append(whereClause, "instance = ?")
+		whereParts = append(whereParts, "instance = ?")
 		whereValues = append(whereValues, sourceID.Instance)
 	}
 	if sourceID.Tag != "" {
-		whereClause = append(whereClause, "tag = ?")
+		whereParts = append(whereParts, "tag = ?")
 		whereValues = append(whereValues, sourceID.Tag)
+	}
+	whereClause := ""
+	if len(whereParts) > 0 {
+		whereClause = "WHERE " + strings.Join(whereParts, " AND ") + " "
 	}
 	sql1 := "SELECT cr.id, crg.id, crg.app, crg.instance, crg.tag, cr.severity, cr.subject, cr.body, cr.args, cr.created, crg.resolved_by_user_id, us.user, crg.escalated " +
 		"FROM conomi_report_group AS crg " +
 		"JOIN conomi_report AS cr ON crg.id = cr.report_group_id " +
 		"LEFT JOIN user AS us ON resolved_by_user_id = us.id " +
-		"WHERE " + strings.Join(whereClause, " AND ") + " " +
+		whereClause +
 		"ORDER BY created DESC"
-	log.Debug().Str("sql", sql1).Msg("going to SELECT conomi_report WHERE resolved_by_user_id IS NULL")
+	log.Debug().Str("sql", sql1).Msg("going to SELECT conomi_report")
 	rows, err := rdb.db.Query(sql1, whereValues...)
 	if err != nil {
 		return nil, err

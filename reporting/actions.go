@@ -118,8 +118,9 @@ func (a *Actions) GetReports(ctx *gin.Context) {
 		Instance: ctx.Request.URL.Query().Get("instance"),
 		Tag:      ctx.Request.URL.Query().Get("tag"),
 	}
+	resolved := ctx.Request.URL.Query().Get("resolved") == "true"
 	rdb := engine.NewReportsDatabase(a.db)
-	reports, err := rdb.ListReports(sourceID)
+	reports, err := rdb.ListReports(sourceID, resolved)
 	if err != nil {
 		uniresp.RespondWithErrorJSON(
 			ctx, err, http.StatusInternalServerError)

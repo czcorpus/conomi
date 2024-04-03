@@ -17,7 +17,7 @@
       </route>
 
       <route path="/list(.*)">
-        <list baseUrl={props.baseUrl} app={route.searchParams.get('app')} instance={route.searchParams.get('instance')} tag={route.searchParams.get('tag')}></list>
+        <list baseUrl={props.baseUrl} app={route.searchParams.get('app')} instance={route.searchParams.get('instance')} tag={route.searchParams.get('tag')} resolved={route.searchParams.get('resolved') === "true"}></list>
       </route>
 
       <route path="/detail(.*)">
