@@ -7,6 +7,10 @@
   text-align: center;
 }
 
+.resolved {
+  background-color: #e7e9eb !important;
+}
+
 .warning {
   background-color: #b3ffb3;
 }

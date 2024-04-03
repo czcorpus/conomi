@@ -1,28 +1,35 @@
 <list>
     <div if={ state.error != null }>Error: { state.error.response ? JSON.stringify(state.error.response.data) : JSON.stringify(state.error)}</div>
 
-    <form class="filters" if={ state.filters != null }>
-        <fieldset class="filter">
-            <label for="app">App:</label>
-            <select id="app" value={ state.selected.app } onchange={ updateSelection }>
-                <option value="" selected={state.selected.app == ""}>all</option>
-                <option each={ app in state.filters.apps } value={ app } selected={state.selected.app == app}>{ app }</option>
-            </select>
+    <form if={ state.filters != null }>
+        <fieldset class="filters">
+            <div class="filter">
+                <label for="app">App:</label>
+                <select id="app" value={ state.selected.app } onchange={ updateSelection }>
+                    <option value="" selected={state.selected.app == ""}>all</option>
+                    <option each={ app in state.filters.apps } value={ app } selected={state.selected.app == app}>{ app }</option>
+                </select>
+            </div>
+            <div class="filter">
+                <label for="instance">Instance:</label>
+                <select id="instance" value={ state.selected.instance } onchange={ updateSelection }>
+                    <option value="" selected={state.selected.instance == ""}>all</option>
+                    <option each={ instance in state.filters.instances } value={ instance } selected={state.selected.instance == instance}>{ instance }</option>
+                </select>
+            </div>
+            <div class="filter">
+                <label for="tag">Tag:</label>
+                <select id="tag" value={ state.selected.tag } onchange={ updateSelection }>
+                    <option value="" selected={state.selected.tag == ""}>all</option>
+                    <option each={ tag in state.filters.tags } value={ tag } selected={state.selected.tag == tag}>{ tag }</option>
+                </select>
+            </div>
         </fieldset>
-        <fieldset class="filter">
-            <label for="instance">Instance:</label>
-            <select id="instance" value={ state.selected.instance } onchange={ updateSelection }>
-                <option value="" selected={state.selected.instance == ""}>all</option>
-                <option each={ instance in state.filters.instances } value={ instance } selected={state.selected.instance == instance}>{ instance }</option>
-            </select>
+        <fieldset class="additional-filters">
+            <input type="checkbox" id="resolved" checked={ state.selected.resolved } onchange={ updateSelection }>
+            <label for="resolved">display resolved</label>
         </fieldset>
-        <fieldset class="filter">
-            <label for="tag">Tag:</label>
-            <select id="tag" value={ state.selected.tag } onchange={ updateSelection }>
-                <option value="" selected={state.selected.tag == ""}>all</option>
-                <option each={ tag in state.filters.tags } value={ tag } selected={state.selected.tag == tag}>{ tag }</option>
-            </select>
-        </fieldset>
+        <hr>
     </form>
 
     <div if={ state.reports != null }>
@@ -35,17 +42,19 @@
                     <th>Tag</th>
                     <th>Severity</th>
                     <th>Subject</th>
+                    <th if={ state.selected.resolved }>Resolved by</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
-                <tr each={report in state.reports} class={report.severity}>
+                <tr each={report in state.reports} class={report.severity + (report.resolvedByUserId !== -1 ? " resolved" : "")}>
                     <td>{ report.created.toLocaleString() }</td>
                     <td>{ report.sourceId.app }</td>
                     <td>{ report.sourceId.instance }</td>
                     <td>{ report.sourceId.tag }</td>
                     <td>{ report.severity }</td>
                     <td>{ report.subject }</td>
+                    <td if={ state.selected.resolved }>{ report.resolvedByUserName }</td>
                     <td><a class="button button-small" href={`detail?id=${report.id}`}>Detail</a></td>
                 </tr>
             </tbody>
@@ -53,20 +62,36 @@
     </div>
 
     <style>
+        form {
+            margin: 0em;
+        }
+
         .filters {
             display: flex;
+            margin: 0em;
         }
 
         .filter {
             flex-grow: 1;
+            margin: 0em 0.1em;
         }
 
-        form {
+        .additional-filters {
             margin-bottom: 0em;
+        }
+
+        .additional-filters label, .additional-filters input {
+            display: inline;
+            font-weight: normal;
+            margin: 0 0.1em;
         }
 
         th, td {
            padding: 0.1em 1em;
+        }
+
+        hr {
+            margin: 0.5em;
         }
     </style>
 
@@ -85,7 +110,11 @@
             updateSelection(event) {
                 this.update({isBusy: true})
                 const selected = this.state.selected;
-                selected[event.target.id] = event.target.value;
+                if (event.target.type === "checkbox") {
+                    selected[event.target.id] = event.target.checked;
+                } else {
+                    selected[event.target.id] = event.target.value;
+                }
                 this.updateFilter(selected);
             },
             // retrieve list of all available sources
@@ -98,6 +127,7 @@
                             app: this.props.app ? this.props.app : "",
                             instance: this.props.instance ? this.props.instance : "",
                             tag: this.props.tag ? this.props.tag : "",
+                            resolved: this.props.resolved ? this.props.resolved : false,
                         });
                     })
                     .catch(error => this.update({error}));
@@ -129,7 +159,7 @@
                         tags.push(source.tag)
                     }
                 });
-                return {apps, instances, tags};
+                return {apps, instances, tags, resolved: selected.resolved};
             },
             // update all data when changing selection
             updateFilter(selected) {
