@@ -43,8 +43,7 @@ type Conf struct {
 	ClientAssetsDirPath    string                `json:"clientAssetsDirPath"`
 	ServerReadTimeoutSecs  int                   `json:"serverReadTimeoutSecs"`
 	ServerWriteTimeoutSecs int                   `json:"serverWriteTimeoutSecs"`
-	LogFile                string                `json:"logFile"`
-	LogLevel               logging.LogLevel      `json:"logLevel"`
+	Logging                logging.LoggingConf   `json:"logging"`
 	Language               string                `json:"language"`
 	TimeZone               string                `json:"timeZone"`
 	DB                     *engine.DBConf        `json:"db"`
@@ -53,10 +52,6 @@ type Conf struct {
 	Auth                   *auth.AuthConf        `json:"auth"`
 
 	srcPath string
-}
-
-func (conf *Conf) IsDebugMode() bool {
-	return conf.LogLevel == "debug"
 }
 
 func (conf *Conf) TimezoneLocation() *time.Location {
