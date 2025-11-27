@@ -135,6 +135,7 @@ func (rdb *ReportsDatabase) ListReports(sourceID general.SourceID, resolved bool
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	ans := make([]*general.Report, 0, 100)
 	for rows.Next() {
 		entry := &reportSQL{}
@@ -212,6 +213,7 @@ func (rdb *ReportsDatabase) GetOverview() ([]*general.ReportOverview, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	ans := make([]*general.ReportOverview, 0, 100)
 	for rows.Next() {
 		count := &general.ReportOverview{}
@@ -233,9 +235,7 @@ func (rdb *ReportsDatabase) GetSources() ([]*general.SourceID, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err != nil {
-		return nil, err
-	}
+	defer rows.Close()
 	ans := make([]*general.SourceID, 0, 100)
 	for rows.Next() {
 		var app string
